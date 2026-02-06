@@ -66,28 +66,36 @@ export class AudioAnalysisService {
     }
 
     private detectSilenceSegments(buffer: AudioBuffer, options: SilenceOptions): { start: number; end: number }[] {
+        console.log("Detecting silences with options:", options);
         const data = buffer.getChannelData(0);
         const sampleRate = buffer.sampleRate;
 
         const threshold = Math.pow(10, options.thresholdDb / 20); // Convert dB to amplitude
+        console.log("Threshold amplitude:", threshold);
+
         const minSamples = options.minDuration * sampleRate;
         const marginSamples = options.safetyMargin * sampleRate;
 
         const silences: { start: number; end: number }[] = [];
         let isSilent = false;
         let silenceStart = 0;
+        let i = 0;
+
+        // Peak checking across the whole file
+        let maxVal = 0;
 
         // We can iterate with a stride to speed up, but accuracy matters.
         // Optimization: check rms in blocks.
         const blockSize = 128;
 
-        for (let i = 0; i < data.length; i += blockSize) {
+        for (i = 0; i < data.length; i += blockSize) {
             // Calculate simplified RMS or just check if ANY sample exceeds threshold in block?
             // Checking max in block is safer to avoid declaring silence if there's a click.
             let maxInBlock = 0;
             for (let j = 0; j < blockSize && i + j < data.length; j++) {
                 const v = Math.abs(data[i + j]);
                 if (v > maxInBlock) maxInBlock = v;
+                if (v > maxVal) maxVal = v;
             }
 
             if (maxInBlock < threshold) {
@@ -129,6 +137,9 @@ export class AudioAnalysisService {
                 }
             }
         }
+
+        console.log("Max amplitude found in file:", maxVal);
+        console.log("Found silences:", silences.length, silences);
 
         return silences;
     }

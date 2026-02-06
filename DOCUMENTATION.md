@@ -24,3 +24,15 @@
 - [2026-02-06]: Refactored Analysis UI
   - *Details*: Moved "Analyze Timeline" button to the main Header and "Analyze Clip" button to the Sidebar (ClipList item).
   - *Tech Notes*: Removed analysis controls from `App.tsx` preview area. Added logic to `handleAnalyzeClipFromSidebar` to analyze matching timeline items from sidebar.
+
+- [2026-02-06]: Implemented Analysis Engine
+  - *Details*: Enhanced silence visualization in waveform with distinct red hatched pattern. Export logic verified to cut out identified silences.
+  - *Tech Notes*: Updated `WaveformCanvas.tsx` drawing logic. Confirmed `FFmpegService.ts` handles silence removal via concat.
+
+- [2026-02-06]: Improved User Feedback
+  - *Details*: Integrated `sonner` for toast notifications. Now providing detailed feedback for analysis events (Start, Success, Error).
+  - *Tech Notes*: Added `<Toaster />` to `App.tsx`. Implemented `toast` calls in `performAnalysis`.
+
+- [2026-02-06]: Professional Timeline Redesign
+  - *Details*: Major visual overhaul of the timeline. Added `TimeRuler`, professional status metrics (Total Duration, Clip Count), and refined the dark theme aesthetics.
+  - *Tech Notes*: Created `TimeRuler.tsx`. Refactored `Timeline.tsx` layout. Updated `Timeline.css` variables.

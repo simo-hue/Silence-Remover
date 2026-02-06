@@ -13,6 +13,7 @@ import { Timeline } from './components/Timeline/Timeline';
 import type { TimelineItem } from './components/Timeline/Timeline';
 import { SettingsDialog } from './components/Settings/SettingsDialog';
 import { Plus } from 'lucide-react';
+import { Toaster, toast } from 'sonner';
 
 interface ClipWithData extends Clip {
   analysis?: AudioAnalysisResult;
@@ -192,12 +193,29 @@ function App() {
   };
 
   const performAnalysis = async (itemsToAnalyze: TimelineItem[]) => {
+    console.log("Starting analysis for items:", itemsToAnalyze.length);
+    const count = itemsToAnalyze.length;
+    const toastId = toast.loading(`Starting analysis for ${count} clip${count > 1 ? 's' : ''}...`);
+
+    let processed = 0;
+
     // We update state item by item to show progress
     for (const item of itemsToAnalyze) {
-      if (item.peaks.length > 0) continue; // Already analyzed
+      if (item.peaks.length > 0) {
+        console.log("Skipping already analyzed item:", item.id);
+        processed++;
+        continue; // Already analyzed
+      }
 
+      console.log("Analyzing item:", item.id, item.file.name);
       try {
         const result = await analyze(item.file, silenceOptions);
+        console.log("Analysis result for", item.id, result);
+
+        const silenceCount = result.silences.length;
+        toast.info(`Analyzed ${item.file.name}: Found ${silenceCount} silence segments`, {
+          id: toastId // update existing? No, maybe stack them.
+        });
 
         setTimelineItems(currentItems => {
           return currentItems.map(i => {
@@ -212,19 +230,35 @@ function App() {
             return i;
           });
         });
-      } catch (e) {
+        processed++;
+      } catch (e: any) {
         console.error("Analysis failed for item", item.id, e);
+        toast.error(`Failed to analyze ${item.file.name}: ${e.message}`);
       }
     }
+
+    toast.success(`Analysis complete. Processed ${processed}/${count} clips.`, {
+      id: toastId
+    });
   };
 
   const handleAnalyzeProject = () => {
+    console.log("Analyze Project Clicked");
+    if (timelineItems.length === 0) {
+      toast.error("No clips in timeline to analyze.");
+      return;
+    }
     performAnalysis(timelineItems);
   };
 
   const handleAnalyzeItem = (id: string) => {
+    console.log("Analyze Item Clicked:", id);
     const item = timelineItems.find(i => i.id === id);
-    if (item) performAnalysis([item]);
+    if (!item) {
+      toast.error("Clip not found.");
+      return;
+    }
+    performAnalysis([item]);
   };
 
   /* Legacy single clip analyze - replaced by project analyze
@@ -387,6 +421,7 @@ function App() {
         options={silenceOptions}
         onChange={setSilenceOptions}
       />
+      <Toaster position="bottom-right" theme="dark" />
     </>
   );
 }

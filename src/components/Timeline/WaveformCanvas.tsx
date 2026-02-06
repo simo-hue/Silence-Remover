@@ -132,11 +132,34 @@ export const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
             }
 
             // Draw Silences
-            ctx.fillStyle = 'rgba(239, 83, 80, 0.4)';
             silences.forEach(s => {
                 const x = s.start * pixelsPerSecond;
                 const w = (s.end - s.start) * pixelsPerSecond;
+
+                // Fill
+                ctx.fillStyle = 'rgba(239, 68, 68, 0.3)'; // stronger red
                 ctx.fillRect(x, 0, w, height);
+
+                // Border
+                ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x, 0, w, height);
+
+                // Hatching pattern for "to be cut" look
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(x, 0, w, height);
+                ctx.clip();
+
+                ctx.strokeStyle = 'rgba(239, 68, 68, 0.2)';
+                ctx.lineWidth = 2;
+                const spacing = 10;
+                for (let i = x - height; i < x + w; i += spacing) {
+                    ctx.moveTo(i, height);
+                    ctx.lineTo(i + height, 0);
+                }
+                ctx.stroke();
+                ctx.restore();
             });
         }
 

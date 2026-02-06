@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { TimelineClip } from './TimelineClip';
-import { ZoomIn, ZoomOut } from 'lucide-react';
+import { TimeRuler } from './TimeRuler';
+import { ZoomIn, ZoomOut, Clock, Film } from 'lucide-react'; // Added icons
 import './Timeline.css';
 
 export interface TimelineItem {
@@ -31,49 +32,101 @@ export const Timeline: React.FC<TimelineProps> = ({
     const handleZoomIn = () => setPixelsPerSecond(prev => Math.min(prev * 1.5, 500));
     const handleZoomOut = () => setPixelsPerSecond(prev => Math.max(prev / 1.5, 10));
 
+    // Calculate metrics
+    const totalDuration = useMemo(() => items.reduce((acc, item) => acc + item.duration, 0), [items]);
+    const clipCount = items.length;
+
+    // Format Time Metrics
+    const formatDuration = (seconds: number) => {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        const ms = Math.floor((seconds % 1) * 100);
+        return `${h > 0 ? h + ':' : ''}${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}:${ms.toString().padStart(2, '0')}`;
+    };
+
     let currentOffset = 0;
 
     return (
         <div className="timeline-container">
+            {/* Toolbar / Status Bar Top */}
             <div className="timeline-controls">
-                <button className="icon-btn" onClick={handleZoomOut}><ZoomOut size={16} /></button>
-                <div className="zoom-value">{Math.round(pixelsPerSecond)} px/s</div>
-                <button className="icon-btn" onClick={handleZoomIn}><ZoomIn size={16} /></button>
-                <div style={{ marginLeft: 'auto', fontSize: '12px', color: '#888' }}>
-                    {items.length} Clips
+                <div className="timeline-tools">
+                    <button className="icon-btn" onClick={handleZoomOut} title="Zoom Out"><ZoomOut size={16} /></button>
+                    <div className="zoom-value">{Math.round(pixelsPerSecond)} px/s</div>
+                    <button className="icon-btn" onClick={handleZoomIn} title="Zoom In"><ZoomIn size={16} /></button>
+                </div>
+
+                <div className="timeline-metrics">
+                    <div className="metric-item" title="Total Duration">
+                        <Clock size={14} />
+                        <span>{formatDuration(totalDuration)}</span>
+                    </div>
+                    <div className="metric-separator"></div>
+                    <div className="metric-item" title="Clip Count">
+                        <Film size={14} />
+                        <span>{clipCount} clips</span>
+                    </div>
                 </div>
             </div>
 
+            {/* Scroll Area containing Ruler + Tracks */}
             <div className="timeline-scroll-area" ref={containerRef}>
-                <div className="timeline-tracks-container" style={{ display: 'flex', height: '100%' }}>
-                    {items.length > 0 ? (
-                        items.map((item) => {
-                            const start = currentOffset;
-                            currentOffset += item.duration;
+                <div className="timeline-content-wrapper">
+                    {/* Time Ruler */}
+                    <div className="timeline-ruler-wrapper">
+                        <TimeRuler
+                            duration={Math.max(totalDuration, 60)} // Min 60s for ruler visuals
+                            pixelsPerSecond={pixelsPerSecond}
+                            currentTime={currentTime}
+                            onScrub={onScrub}
+                        />
+                        {/* Global Playhead Indicator on Ruler */}
+                        <div
+                            className="timeline-playhead-marker"
+                            style={{ left: currentTime * pixelsPerSecond }}
+                        />
+                    </div>
 
-                            return (
-                                <TimelineClip
-                                    key={item.id}
-                                    id={item.id}
-                                    peaks={item.peaks}
-                                    silences={item.silences}
-                                    duration={item.duration}
-                                    pixelsPerSecond={pixelsPerSecond}
-                                    globalCurrentTime={currentTime}
-                                    startTimeOffset={start}
-                                    onScrub={onScrub}
-                                    onAnalyze={() => onAnalyzeItem(item.id)}
-                                    title={item.file.name}
-                                />
-                            );
-                        })
-                    ) : (
-                        <div className="timeline-placeholder">
-                            Add clips to the timeline to begin editing
-                        </div>
-                    )}
-                    {/* End Spacer */}
-                    <div style={{ width: '200px', flexShrink: 0 }}></div>
+                    {/* Tracks */}
+                    <div className="timeline-tracks-container">
+                        {items.length > 0 ? (
+                            items.map((item) => {
+                                const start = currentOffset;
+                                currentOffset += item.duration;
+
+                                return (
+                                    <TimelineClip
+                                        key={item.id}
+                                        id={item.id}
+                                        peaks={item.peaks}
+                                        silences={item.silences}
+                                        duration={item.duration}
+                                        pixelsPerSecond={pixelsPerSecond}
+                                        globalCurrentTime={currentTime}
+                                        startTimeOffset={start}
+                                        onScrub={onScrub}
+                                        onAnalyze={() => onAnalyzeItem(item.id)}
+                                        title={item.file.name}
+                                    />
+                                );
+                            })
+                        ) : (
+                            <div className="timeline-placeholder">
+                                <div className="placeholder-content">
+                                    <span>Drag clips here or click '+' to start editing</span>
+                                </div>
+                            </div>
+                        )}
+                        {/* End Spacer */}
+                        <div style={{ width: '200px', flexShrink: 0 }}></div>
+
+                        {/* Global Playhead Line across tracks */}
+                        <div
+                            className="timeline-playhead-line"
+                            style={{ left: currentTime * pixelsPerSecond }}
+                        />
+                    </div>
                 </div>
             </div>
         </div>
