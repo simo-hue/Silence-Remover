@@ -216,7 +216,8 @@
 .timeline-tracks-container {
     display: flex;
     flex: 1;
-    padding-top: 20px;
+    padding-bottom: 20px;
+    /* Moved from top to bottom */
     position: relative;
     background-color: var(--timeline-bg);
 }

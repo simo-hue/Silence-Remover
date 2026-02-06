@@ -2,6 +2,8 @@ import React, { useState, useRef, useMemo } from 'react';
 import { TimelineClip } from './TimelineClip';
 import { TimeRuler } from './TimeRuler';
 import { ZoomIn, ZoomOut, Clock, Film, Play, Pause, MousePointer2, Scissors } from 'lucide-react'; // Added icons
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, sortableKeyboardCoordinates, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import './Timeline.css';
 
 export interface TimelineItem {
@@ -23,6 +25,7 @@ interface TimelineProps {
     activeTool: 'select' | 'blade';
     onToolChange: (tool: 'select' | 'blade') => void;
     onRangeRemove: (itemId: string, start: number, end: number) => void;
+    onReorder: (oldIndex: number, newIndex: number) => void;
 }
 
 export const Timeline: React.FC<TimelineProps> = ({
@@ -34,10 +37,32 @@ export const Timeline: React.FC<TimelineProps> = ({
     onTogglePlay,
     activeTool,
     onToolChange,
-    onRangeRemove
+    onRangeRemove,
+    onReorder
 }) => {
     const [pixelsPerSecond, setPixelsPerSecond] = useState(50); // Default Zoom
     const containerRef = useRef<HTMLDivElement>(null);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 5, // Require slight movment to start drag to allow clicks
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        if (active.id !== over?.id) {
+            const oldIndex = items.findIndex((item) => item.id === active.id);
+            const newIndex = items.findIndex((item) => item.id === over?.id);
+            onReorder(oldIndex, newIndex);
+        }
+    };
 
     const handleZoomIn = () => setPixelsPerSecond(prev => Math.min(prev * 1.5, 500));
     const handleZoomOut = () => setPixelsPerSecond(prev => Math.max(prev / 1.5, 10));
@@ -130,30 +155,43 @@ export const Timeline: React.FC<TimelineProps> = ({
 
                     {/* Tracks */}
                     <div className="timeline-tracks-container">
-                        {items.length > 0 ? (
-                            items.map((item) => {
-                                const start = currentOffset;
-                                currentOffset += item.duration;
+                        {/* End Spacer */}
+                        {items.length > 0 && (
+                            <DndContext
+                                sensors={sensors}
+                                collisionDetection={closestCenter}
+                                onDragEnd={handleDragEnd}
+                            >
+                                <SortableContext
+                                    items={items.map(i => i.id)}
+                                    strategy={horizontalListSortingStrategy}
+                                >
+                                    {items.map((item) => {
+                                        const start = currentOffset;
+                                        currentOffset += item.duration;
 
-                                return (
-                                    <TimelineClip
-                                        key={item.id}
-                                        id={item.id}
-                                        peaks={item.peaks}
-                                        silences={item.silences}
-                                        duration={item.duration}
-                                        pixelsPerSecond={pixelsPerSecond}
-                                        globalCurrentTime={currentTime}
-                                        startTimeOffset={start}
-                                        onScrub={onScrub}
-                                        onAnalyze={() => onAnalyzeItem(item.id)}
-                                        title={item.file.name}
-                                        activeTool={activeTool}
-                                        onRangeRemove={(start, end) => onRangeRemove(item.id, start, end)}
-                                    />
-                                );
-                            })
-                        ) : (
+                                        return (
+                                            <TimelineClip
+                                                key={item.id}
+                                                id={item.id}
+                                                peaks={item.peaks}
+                                                silences={item.silences}
+                                                duration={item.duration}
+                                                pixelsPerSecond={pixelsPerSecond}
+                                                globalCurrentTime={currentTime}
+                                                startTimeOffset={start}
+                                                onScrub={onScrub}
+                                                onAnalyze={() => onAnalyzeItem(item.id)}
+                                                title={item.file.name}
+                                                activeTool={activeTool}
+                                                onRangeRemove={(start, end) => onRangeRemove(item.id, start, end)}
+                                            />
+                                        );
+                                    })}
+                                </SortableContext>
+                            </DndContext>
+                        )}
+                        {items.length === 0 && (
                             <div className="timeline-placeholder">
                                 <div className="placeholder-content">
                                     <span>Drag clips here or click '+' to start editing</span>

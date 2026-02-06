@@ -81,3 +81,11 @@
 - [2026-02-06]: Timeline Tools UI Refinement
   - *Details*: Refactored Timeline.css to remove duplicate style definitions and improved the visual design of the timeline tools. Grouped tools into segmented controls and centered playback buttons.
   - *Tech Notes*: Removed redundant .timeline-controls and .icon-btn classes. Added .tool-group for better visual hierarchy.
+
+- [2026-02-06]: Timeline Drag & Drop and Visual Improvements
+  - *Details*: Added functionality to reorder timeline clips using Drag & Drop. Improved visual separation of clips with borders and better header styling.
+  - *Tech Notes*: Installed @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities. Wrapped Timeline usage with DndContext/SortableContext. Standardized clip borders in CSS.
+
+- [2026-02-06]: Timeline Layout Adjustments
+  - *Details*: Reduced timeline area height to maximize preview space and added a subtle bottom margin for better aesthetics.
+  - *Tech Notes*: MainLayout.css: .timeline-area height set to 200px. TimelineClip.tsx: Waveform height reduced to 120px.

@@ -6,6 +6,10 @@
     background-color: var(--bg-primary);
     color: var(--text-primary);
     overflow: hidden;
+    padding-bottom: 4px;
+    /* Slight bottom gap */
+    box-sizing: border-box;
+    /* Ensure padding includes in height */
 }
 
 .app-header {
@@ -118,7 +122,8 @@
 }
 
 .timeline-area {
-    height: 250px;
+    height: 200px;
+    /* Reduced from 250px */
     background-color: var(--timeline-bg);
     border-top: 1px solid var(--border-color);
     flex-shrink: 0;

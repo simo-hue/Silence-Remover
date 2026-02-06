@@ -18,6 +18,7 @@ import { Toaster, toast } from 'sonner';
 import { ExportDialog } from './components/Export/ExportDialog';
 import { ExportProgressModal } from './components/Export/ExportProgressModal';
 import type { ExportQuality } from './services/FFmpegService';
+import { arrayMove } from '@dnd-kit/sortable';
 
 interface ClipWithData extends Clip {
   analysis?: AudioAnalysisResult;
@@ -461,6 +462,10 @@ function App() {
     setViewMode('PROJECT');
   };
 
+  const handleTimelineReorder = (oldIndex: number, newIndex: number) => {
+    setTimelineItems((items) => arrayMove(items, oldIndex, newIndex));
+  };
+
   /* Sidebar Content Construction */
   // ... inside App component (variable declared at top)
 
@@ -573,6 +578,7 @@ function App() {
       activeTool={activeTool}
       onToolChange={setActiveTool}
       onRangeRemove={handleTimelineRangeRemove}
+      onReorder={handleTimelineReorder}
     />
   );
 

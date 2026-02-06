@@ -1,35 +1,61 @@
+/* Main Wrapper for a single clip on the timeline */
 .timeline-clip-wrapper {
     position: relative;
     height: 100%;
-    border-right: 1px solid var(--border-color);
+    /* Distinct separation */
+    border-right: 1px solid #000;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
     background-color: var(--bg-tertiary);
     flex-shrink: 0;
-    /* Don't shrink, we scroll */
+
+    /* Drag & Drop Visuals */
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0.2, 1), box-shadow 0.2s;
+    user-select: none;
 }
 
+.timeline-clip-wrapper:hover {
+    background-color: #2b2b2b;
+}
+
+/* Header bar with title */
 .clip-header {
-    background: #333;
-    color: #eee;
-    padding: 4px 8px;
-    font-size: 11px;
+    background: #2a2a2a;
+    color: #aeaeae;
+    padding: 0 8px;
+    height: 20px;
+    font-size: 10px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    border-bottom: 1px solid #444;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
     display: flex;
     align-items: center;
     justify-content: space-between;
+    font-weight: 500;
+    cursor: grab;
+    /* Show grab cursor for DnD */
+}
+
+.clip-header:active {
+    cursor: grabbing;
+}
+
+.clip-header span {
+    pointer-events: none;
+    /* Let clicks pass through if needed, but mainly for drag */
 }
 
 .tiny-btn {
     background: var(--primary-color);
     border: none;
     color: black;
-    padding: 2px 6px;
+    padding: 1px 6px;
     border-radius: 2px;
     font-size: 9px;
     cursor: pointer;
     font-weight: 600;
+    height: 16px;
+    line-height: 1;
 }
 
 .tiny-btn:hover {

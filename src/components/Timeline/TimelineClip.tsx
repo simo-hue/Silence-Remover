@@ -1,6 +1,8 @@
 import React from 'react';
 import { WaveformCanvas } from './WaveformCanvas';
 import './TimelineClip.css';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface TimelineClipProps {
     id: string;
@@ -18,6 +20,7 @@ interface TimelineClipProps {
 }
 
 export const TimelineClip: React.FC<TimelineClipProps> = ({
+    id,
     peaks,
     silences,
     duration,
@@ -33,14 +36,34 @@ export const TimelineClip: React.FC<TimelineClipProps> = ({
 }) => {
     const width = duration * pixelsPerSecond;
 
-    // Calculate local current time relative to this clip
-    // If globalTime is 15s and this clip starts at 10s, localTime is 5s.
-    // If globalTime is 5s and this clip starts at 10s, localTime is -5s (not playing this clip).
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging
+    } = useSortable({ id });
+
+    const style = {
+        width: width,
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 999 : 'auto',
+        boxShadow: isDragging ? '0 0 0 2px var(--accent-color)' : 'none',
+    };
+
     const localCurrentTime = globalCurrentTime - startTimeOffset;
 
     return (
-        <div className="timeline-clip-wrapper" style={{ width: width }}>
-            <div className="clip-header" title={title}>
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={`timeline-clip-wrapper ${isDragging ? 'dragging' : ''}`}
+            {...attributes}
+        >
+            <div className="clip-header" title={title} {...listeners}>
                 <span>{title}</span>
                 {peaks.length === 0 && (
                     <button
@@ -59,7 +82,7 @@ export const TimelineClip: React.FC<TimelineClipProps> = ({
                 silences={silences}
                 duration={duration}
                 width={width}
-                height={180} // Slightly less to fit header
+                height={120} // Slightly less to fit header
                 pixelsPerSecond={pixelsPerSecond}
                 currentTime={localCurrentTime} // WaveformCanvas draws playhead if 0 <= t <= duration
                 onScrub={(localTime) => {
