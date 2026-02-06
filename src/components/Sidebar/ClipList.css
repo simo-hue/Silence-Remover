@@ -1,0 +1,97 @@
+.clip-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.clip-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border: 1px solid transparent;
+}
+
+.clip-item:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.clip-item.selected {
+    background-color: rgba(100, 181, 246, 0.1);
+    border-color: rgba(100, 181, 246, 0.3);
+}
+
+.clip-thumbnail {
+    width: 48px;
+    height: 48px;
+    background-color: #000;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    color: var(--text-secondary);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.clip-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.clip-info {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.clip-name {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-primary);
+}
+
+.clip-duration {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.btn-remove {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    opacity: 0;
+    cursor: pointer;
+    padding: 4px;
+    transition: all 0.2s;
+}
+
+.clip-item:hover .btn-remove {
+    opacity: 1;
+}
+
+.btn-remove:hover {
+    color: #ef5350;
+    background-color: rgba(239, 83, 80, 0.1);
+    border-radius: 4px;
+}
+
+.empty-clips {
+    text-align: center;
+    padding: 32px 16px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}

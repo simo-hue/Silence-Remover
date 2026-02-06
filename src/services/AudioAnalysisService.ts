@@ -1,0 +1,132 @@
+export interface AudioAnalysisResult {
+    duration: number;
+    sampleRate: number;
+    peaks: number[]; // For waveform visualization (decimated)
+    silences: { start: number; end: number }[];
+}
+
+export interface SilenceOptions {
+    thresholdDb: number; // e.g. -40dB
+    minDuration: number; // e.g. 0.5s
+    safetyMargin: number; // e.g. 0.1s padding
+}
+
+export class AudioAnalysisService {
+    private audioContext: AudioContext;
+
+    constructor() {
+        this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+
+    async analyzeVideoAudio(file: File, options: SilenceOptions): Promise<AudioAnalysisResult> {
+        const arrayBuffer = await file.arrayBuffer();
+        const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+
+        // 1. Generate Peaks for Waveform
+        const peaks = this.getPeaks(audioBuffer, 100); // 100 peaks per second of audio? Maybe simpler fixed count or dynamic. 
+        // Let's aim for 1000 peaks total for now, or purely based on canvas width. 
+        // Better: 1 peak per small window.
+
+        // 2. Detect Silences
+        const silences = this.detectSilenceSegments(audioBuffer, options);
+
+        return {
+            duration: audioBuffer.duration,
+            sampleRate: audioBuffer.sampleRate,
+            peaks,
+            silences
+        };
+    }
+
+    // Simplified peak generation (max amplitude in chunk)
+    private getPeaks(buffer: AudioBuffer, peaksByName: number = 2000): number[] {
+        const channelData = buffer.getChannelData(0); // Analyze first channel
+        const len = channelData.length;
+        const peaks: number[] = [];
+
+        // Calculate step based on desired total peaks (peaksByName arg)
+        const step = Math.floor(len / peaksByName);
+
+        for (let i = 0; i < len; i += step) {
+            let max = 0;
+            // Taking a small sample or just the value at i (if decimation is high, maybe RMS of the window?)
+            // Let's take the absolute max in the window to not miss spikes.
+            for (let j = 0; j < step && i + j < len; j++) {
+                const val = Math.abs(channelData[i + j]);
+                if (val > max) max = val;
+            }
+            peaks.push(max);
+        }
+        return peaks;
+    }
+
+    private detectSilenceSegments(buffer: AudioBuffer, options: SilenceOptions): { start: number; end: number }[] {
+        const data = buffer.getChannelData(0);
+        const sampleRate = buffer.sampleRate;
+
+        const threshold = Math.pow(10, options.thresholdDb / 20); // Convert dB to amplitude
+        const minSamples = options.minDuration * sampleRate;
+        const marginSamples = options.safetyMargin * sampleRate;
+
+        const silences: { start: number; end: number }[] = [];
+        let isSilent = false;
+        let silenceStart = 0;
+
+        // We can iterate with a stride to speed up, but accuracy matters.
+        // Optimization: check rms in blocks.
+        const blockSize = 128;
+
+        for (let i = 0; i < data.length; i += blockSize) {
+            // Calculate simplified RMS or just check if ANY sample exceeds threshold in block?
+            // Checking max in block is safer to avoid declaring silence if there's a click.
+            let maxInBlock = 0;
+            for (let j = 0; j < blockSize && i + j < data.length; j++) {
+                const v = Math.abs(data[i + j]);
+                if (v > maxInBlock) maxInBlock = v;
+            }
+
+            if (maxInBlock < threshold) {
+                if (!isSilent) {
+                    isSilent = true;
+                    silenceStart = i;
+                }
+            } else {
+                if (isSilent) {
+                    isSilent = false;
+                    const durationFrames = i - silenceStart;
+                    if (durationFrames >= minSamples) {
+                        // Apply safety margin (shrink silence)
+                        const actualStart = silenceStart + marginSamples;
+                        const actualEnd = i - marginSamples;
+
+                        if (actualEnd > actualStart) {
+                            silences.push({
+                                start: actualStart / sampleRate,
+                                end: actualEnd / sampleRate
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        // Check tail
+        if (isSilent) {
+            const durationFrames = data.length - silenceStart;
+            if (durationFrames >= minSamples) {
+                const actualStart = silenceStart + marginSamples;
+                const actualEnd = data.length - marginSamples;
+                if (actualEnd > actualStart) {
+                    silences.push({
+                        start: actualStart / sampleRate,
+                        end: actualEnd / sampleRate
+                    });
+                }
+            }
+        }
+
+        return silences;
+    }
+}
+
+export const audioService = new AudioAnalysisService();
