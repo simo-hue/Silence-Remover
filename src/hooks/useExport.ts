@@ -36,7 +36,7 @@ export const useExport = (): UseExportReturn => {
 
         } catch (error) {
             console.error("Export failed", error);
-            alert("Export failed: " + error);
+            throw error;
         } finally {
             setIsExporting(false);
         }

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { TimelineClip } from './TimelineClip';
 import { TimeRuler } from './TimeRuler';
-import { ZoomIn, ZoomOut, Clock, Film, Play, Pause } from 'lucide-react'; // Added icons
+import { ZoomIn, ZoomOut, Clock, Film, Play, Pause, MousePointer2, Scissors } from 'lucide-react'; // Added icons
 import './Timeline.css';
 
 export interface TimelineItem {
@@ -20,6 +20,9 @@ interface TimelineProps {
     onAnalyzeItem: (id: string) => void;
     isPlaying: boolean;
     onTogglePlay: () => void;
+    activeTool: 'select' | 'blade';
+    onToolChange: (tool: 'select' | 'blade') => void;
+    onRangeRemove: (itemId: string, start: number, end: number) => void;
 }
 
 export const Timeline: React.FC<TimelineProps> = ({
@@ -28,7 +31,10 @@ export const Timeline: React.FC<TimelineProps> = ({
     onScrub,
     onAnalyzeItem,
     isPlaying,
-    onTogglePlay
+    onTogglePlay,
+    activeTool,
+    onToolChange,
+    onRangeRemove
 }) => {
     const [pixelsPerSecond, setPixelsPerSecond] = useState(50); // Default Zoom
     const containerRef = useRef<HTMLDivElement>(null);
@@ -56,9 +62,28 @@ export const Timeline: React.FC<TimelineProps> = ({
             {/* Toolbar / Status Bar Top */}
             <div className="timeline-controls">
                 <div className="timeline-tools">
-                    <button className="icon-btn" onClick={handleZoomOut} title="Zoom Out"><ZoomOut size={16} /></button>
-                    <div className="zoom-value">{Math.round(pixelsPerSecond)} px/s</div>
-                    <button className="icon-btn" onClick={handleZoomIn} title="Zoom In"><ZoomIn size={16} /></button>
+                    <div className="tool-group">
+                        <button
+                            className={`icon-btn ${activeTool === 'select' ? 'active' : ''}`}
+                            onClick={() => onToolChange('select')}
+                            title="Select (V)"
+                        >
+                            <MousePointer2 size={16} />
+                        </button>
+                        <button
+                            className={`icon-btn ${activeTool === 'blade' ? 'active' : ''}`}
+                            onClick={() => onToolChange('blade')}
+                            title="Blade (B)"
+                        >
+                            <Scissors size={16} />
+                        </button>
+                    </div>
+                    <div className="tool-separator"></div>
+                    <div className="tool-group">
+                        <button className="icon-btn" onClick={handleZoomOut} title="Zoom Out"><ZoomOut size={16} /></button>
+                        <div className="zoom-value">{Math.round(pixelsPerSecond)} px/s</div>
+                        <button className="icon-btn" onClick={handleZoomIn} title="Zoom In"><ZoomIn size={16} /></button>
+                    </div>
                 </div>
 
                 {/* Centered Playback Controls */}
@@ -123,6 +148,8 @@ export const Timeline: React.FC<TimelineProps> = ({
                                         onScrub={onScrub}
                                         onAnalyze={() => onAnalyzeItem(item.id)}
                                         title={item.file.name}
+                                        activeTool={activeTool}
+                                        onRangeRemove={(start, end) => onRangeRemove(item.id, start, end)}
                                     />
                                 );
                             })

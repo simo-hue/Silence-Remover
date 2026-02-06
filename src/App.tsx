@@ -42,6 +42,7 @@ function App() {
   });
 
   const [activeSidebarTab, setActiveSidebarTab] = useState<'clips' | 'settings'>('clips');
+  const [activeTool, setActiveTool] = useState<'select' | 'blade'>('select'); // New Tool State
 
   useEffect(() => {
     // Revoke old URL - this effect is no longer needed as videoUrl is removed
@@ -349,14 +350,98 @@ function App() {
   const handleConfirmExport = async (quality: ExportQuality) => {
     setIsExportDialogOpen(false);
     // Add small delay to allow modal to close smoothly
-    setTimeout(() => {
-      exportVideo(timelineItems, { quality });
+    setTimeout(async () => {
+      try {
+        await exportVideo(timelineItems, { quality });
+        toast.success("Export successful! 🎉", {
+          description: "Your video is ready and downloading."
+        });
+      } catch (error) {
+        toast.error("Export failed", {
+          description: error instanceof Error ? error.message : "An unknown error occurred during export."
+        });
+      }
     }, 100);
   };
 
   const handleTimelineScrub = (time: number) => {
     setViewMode('PROJECT');
     setCurrentTime(time);
+  };
+
+  /* Blade Tool - Range Removal Logic */
+  const handleTimelineRangeRemove = (itemId: string, start: number, end: number) => {
+    setTimelineItems(currentItems => {
+      const index = currentItems.findIndex(i => i.id === itemId);
+      if (index === -1) return currentItems;
+
+      const item = currentItems[index];
+
+      // Validate range
+      if (start >= end) return currentItems;
+      const removeDuration = end - start;
+      if (removeDuration < 0.1) {
+        toast.warning("Selection too small to remove");
+        return currentItems;
+      }
+
+      const newItemsList = [...currentItems];
+      const createdItems: TimelineItem[] = [];
+
+      // 1. Create Left Part (if start > 0.1)
+      if (start > 0.1) {
+        const splitIndex = Math.floor(item.peaks.length * (start / item.duration));
+        const peaks1 = item.peaks.slice(0, splitIndex);
+
+        const silences1: { start: number; end: number }[] = [];
+        item.silences.forEach(s => {
+          if (s.end <= start) {
+            silences1.push(s);
+          } else if (s.start < start) {
+            // Silence is cut
+            silences1.push({ start: s.start, end: start });
+          }
+        });
+
+        createdItems.push({
+          ...item,
+          id: uuidv4(),
+          peaks: peaks1,
+          silences: silences1,
+          duration: start
+        });
+      }
+
+      // 2. Create Right Part (if end < duration - 0.1)
+      if (end < item.duration - 0.1) {
+        const splitIndex = Math.floor(item.peaks.length * (end / item.duration));
+        const peaks2 = item.peaks.slice(splitIndex);
+
+        const silences2: { start: number; end: number }[] = [];
+        item.silences.forEach(s => {
+          if (s.start >= end) {
+            silences2.push({ start: s.start - end, end: s.end - end });
+          } else if (s.end > end) {
+            // Silence starts before end but finishes after
+            silences2.push({ start: 0, end: s.end - end });
+          }
+        });
+
+        createdItems.push({
+          ...item,
+          id: uuidv4(),
+          peaks: peaks2,
+          silences: silences2,
+          duration: item.duration - end
+        });
+      }
+
+      // Replace the original item with the new parts
+      newItemsList.splice(index, 1, ...createdItems);
+
+      toast.success("Range removed");
+      return newItemsList;
+    });
   };
 
   /* New handler for sidebar analyze button */
@@ -485,6 +570,9 @@ function App() {
       onAnalyzeItem={handleAnalyzeItem}
       isPlaying={isPlaying}
       onTogglePlay={togglePlay}
+      activeTool={activeTool}
+      onToolChange={setActiveTool}
+      onRangeRemove={handleTimelineRangeRemove}
     />
   );
 

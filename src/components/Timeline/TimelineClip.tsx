@@ -13,6 +13,8 @@ interface TimelineClipProps {
     onScrub: (globalTime: number) => void;
     title: string;
     onAnalyze: () => void;
+    activeTool: 'select' | 'blade';
+    onRangeRemove: (start: number, end: number) => void;
 }
 
 export const TimelineClip: React.FC<TimelineClipProps> = ({
@@ -24,7 +26,10 @@ export const TimelineClip: React.FC<TimelineClipProps> = ({
     startTimeOffset,
     onScrub,
     onAnalyze,
-    title
+
+    title,
+    activeTool,
+    onRangeRemove
 }) => {
     const width = duration * pixelsPerSecond;
 
@@ -60,6 +65,8 @@ export const TimelineClip: React.FC<TimelineClipProps> = ({
                 onScrub={(localTime) => {
                     onScrub(startTimeOffset + localTime);
                 }}
+                isBladeActive={activeTool === 'blade'}
+                onRangeRemove={onRangeRemove}
             />
         </div>
     );

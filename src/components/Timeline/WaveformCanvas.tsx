@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 
 interface WaveformCanvasProps {
     peaks: number[];
@@ -11,6 +11,8 @@ interface WaveformCanvasProps {
     pixelsPerSecond: number;
     currentTime: number;
     onScrub?: (time: number) => void;
+    isBladeActive?: boolean;
+    onRangeRemove?: (start: number, end: number) => void;
 }
 
 export const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
@@ -21,9 +23,13 @@ export const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
     height,
     pixelsPerSecond,
     currentTime,
-    onScrub
+    onScrub,
+    isBladeActive,
+    onRangeRemove
 }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [dragStart, setDragStart] = useState<number | null>(null);
+    const [dragEnd, setDragEnd] = useState<number | null>(null);
 
     // We need to map time to x: x = time * pixelsPerSecond
     // And index in peaks to x.
@@ -172,21 +178,69 @@ export const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
         ctx.lineTo(playheadX, height);
         ctx.stroke();
 
-    }, [peaks, silences, duration, width, height, pixelsPerSecond, currentTime]);
+        // Draw Selection Overlay
+        if (dragStart !== null && dragEnd !== null) {
+            const startX = dragStart * pixelsPerSecond;
+            const endX = dragEnd * pixelsPerSecond;
+            const selX = Math.min(startX, endX);
+            const selW = Math.abs(endX - startX);
 
-    const handleClick = (e: React.MouseEvent) => {
-        if (!onScrub || !canvasRef.current) return;
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+            ctx.fillRect(selX, 0, selW, height);
+
+            ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
+            ctx.strokeRect(selX, 0, selW, height);
+        }
+
+    }, [peaks, silences, duration, width, height, pixelsPerSecond, currentTime, dragStart, dragEnd]);
+
+    const getLocalTime = (e: React.MouseEvent) => {
+        if (!canvasRef.current) return 0;
         const rect = canvasRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
-        const time = x / pixelsPerSecond;
-        onScrub(time);
+        return Math.max(0, Math.min(duration, x / pixelsPerSecond));
+    };
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (!isBladeActive) return;
+        setDragStart(getLocalTime(e));
+        setDragEnd(getLocalTime(e));
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isBladeActive || dragStart === null) return;
+        setDragEnd(getLocalTime(e));
+    };
+
+    const handleMouseUp = (e: React.MouseEvent) => {
+        if (!isBladeActive) {
+            // Normal Click for scrub
+            if (onScrub) onScrub(getLocalTime(e));
+            return;
+        }
+
+        if (dragStart !== null && dragEnd !== null && onRangeRemove) {
+            const start = Math.min(dragStart, dragEnd);
+            const end = Math.max(dragStart, dragEnd);
+
+            if (end - start > 0.05) { // Min threshold
+                onRangeRemove(start, end);
+            } else {
+                // Too small, treat as just a click (or ignore)
+            }
+        }
+        setDragStart(null);
+        setDragEnd(null);
     };
 
     return (
         <canvas
             ref={canvasRef}
-            style={{ cursor: 'text' }}
-            onClick={handleClick}
+            style={{ cursor: isBladeActive ? 'crosshair' : 'text' }}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={() => { setDragStart(null); setDragEnd(null); }}
         />
     );
 };

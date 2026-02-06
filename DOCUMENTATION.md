@@ -67,3 +67,17 @@
     - **VideoPreview**: Updated to support programmatic playback control via props.
     - **FFmpegService**: Enhanced with granular progress parsing and quality-based scaling.
     - **Export UI**: Added `ExportDialog` and `ExportProgressModal` components.
+
+- [2026-02-06]: Blade Tool (Razor) Implementation
+  - *Details*: Added professional timeline cutting functionality.
+  - *Features*:
+    - **Toolbar**: Added interactive toolbar with "Pointer" and "Scissors" (Blade) tools.
+    - **Visual Feedback**: Custom cursor when Blade tool is active.
+    - **Splitting**: Range Removal (Drag-to-Delete) functionality.
+  - *Tech Notes*:
+    - **App.tsx**: Implemented `handleTimelineRangeRemove` ripple delete logic.
+    - **WaveformCanvas.tsx**: Implemented drag selection state and rendering.
+
+- [2026-02-06]: Timeline Tools UI Refinement
+  - *Details*: Refactored Timeline.css to remove duplicate style definitions and improved the visual design of the timeline tools. Grouped tools into segmented controls and centered playback buttons.
+  - *Tech Notes*: Removed redundant .timeline-controls and .icon-btn classes. Added .tool-group for better visual hierarchy.

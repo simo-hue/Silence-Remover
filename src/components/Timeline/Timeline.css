@@ -19,6 +19,7 @@
     font-family: 'Inter', sans-serif;
 }
 
+/* Toolbar & Controls */
 .timeline-controls {
     height: 48px;
     border-bottom: 1px solid var(--timeline-border);
@@ -27,14 +28,76 @@
     padding: 0 16px;
     justify-content: space-between;
     background-color: #1a1a1a;
+    position: relative;
+    /* Context for absolute centering */
 }
 
+/* Tool Groups */
 .timeline-tools {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
 }
 
+.tool-group {
+    display: flex;
+    background-color: #2a2a2a;
+    border-radius: 6px;
+    padding: 2px;
+    gap: 2px;
+    border: 1px solid #333;
+}
+
+.tool-separator {
+    width: 1px;
+    height: 24px;
+    background-color: #333;
+    margin: 0 4px;
+}
+
+/* Icons and Buttons */
+.icon-btn {
+    background: transparent;
+    border: none;
+    color: var(--timeline-text);
+    border-radius: 4px;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.icon-btn:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: white;
+}
+
+.icon-btn.active {
+    background-color: var(--accent-color);
+    color: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.tool-group .icon-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+}
+
+.zoom-value {
+    font-size: 12px;
+    color: #888;
+    width: 60px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-family: 'Inter', sans-serif;
+}
+
+/* Metrics */
 .timeline-metrics {
     display: flex;
     align-items: center;
@@ -42,15 +105,17 @@
     font-size: 13px;
     color: var(--timeline-text);
     background: rgba(255, 255, 255, 0.05);
-    padding: 4px 12px;
-    border-radius: 16px;
+    padding: 6px 14px;
+    border-radius: 20px;
     border: 1px solid #333;
+    height: 32px;
+    box-sizing: border-box;
 }
 
 .metric-item {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
 }
 
 .metric-item span {
@@ -60,15 +125,73 @@
 
 .metric-separator {
     width: 1px;
-    height: 16px;
+    height: 14px;
     background-color: #444;
 }
 
+/* Playback Controls (Centered) */
+.timeline-playback-controls {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.play-btn {
+    background: var(--accent-color);
+    /* Use blue accent */
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    color: white;
+}
+
+.play-btn:hover {
+    transform: translate(-50%, -50%) scale(1.1);
+    /* Keep centered centering */
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5);
+    background-color: #2563eb;
+    /* Slightly darker/richer blue on hover */
+}
+
+/* Fix transform conflict with .timeline-playback-controls centering */
+.timeline-playback-controls .play-btn:hover {
+    transform: scale(1.1);
+}
+
+.play-btn:active {
+    transform: scale(0.95);
+}
+
+.play-btn .icon {
+    font-size: 14px;
+    line-height: 1;
+    margin-left: 2px;
+}
+
+.play-btn.playing .icon {
+    margin-left: 0;
+}
+
+/* Scroll Area */
 .timeline-scroll-area {
     flex: 1;
     overflow-x: auto;
     overflow-y: hidden;
     position: relative;
+    background-color: #121212;
+    /* Custom scrollbar matching dark theme */
     scrollbar-width: thin;
     scrollbar-color: #444 #1e1e1e;
 }
@@ -82,7 +205,7 @@
 }
 
 .timeline-ruler-wrapper {
-    height: 24px;
+    height: 28px;
     background-color: #1e1e1e;
     border-bottom: 1px solid #333;
     position: sticky;
@@ -92,14 +215,39 @@
 
 .timeline-tracks-container {
     display: flex;
-    height: 100%;
-    /* Fill remaining */
-    padding-top: 10px;
+    flex: 1;
+    padding-top: 20px;
     position: relative;
     background-color: var(--timeline-bg);
 }
 
-/* Playhead Marker (Triangle on Ruler) */
+/* Placeholders */
+.timeline-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #555;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.placeholder-content {
+    border: 2px dashed #333;
+    padding: 40px 60px;
+    border-radius: 16px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.02);
+    transition: all 0.2s;
+}
+
+.placeholder-content:hover {
+    border-color: #555;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* Playhead Marker */
 .timeline-playhead-marker {
     position: absolute;
     top: 0;
@@ -111,164 +259,17 @@
     transform: translateX(-50%);
     pointer-events: none;
     z-index: 30;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 }
 
-/* Playhead Line (Vertical Line) */
 .timeline-playhead-line {
     position: absolute;
     top: 0;
     bottom: 0;
     width: 1px;
     background-color: var(--playhead-color);
-    box-shadow: 0 0 4px rgba(239, 68, 68, 0.5);
-    /* Glow */
+    box-shadow: 0 0 4px rgba(239, 68, 68, 0.6);
     transform: translateX(-0.5px);
     pointer-events: none;
     z-index: 25;
-}
-
-/* Icons and Buttons */
-.icon-btn {
-    background: transparent;
-    border: 1px solid #333;
-    color: var(--timeline-text);
-    border-radius: 4px;
-    cursor: pointer;
-    padding: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-}
-
-.icon-btn:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-color: #555;
-    color: white;
-}
-
-.zoom-value {
-    font-size: 11px;
-    color: #888;
-    width: 60px;
-    text-align: center;
-}
-
-.timeline-placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #555;
-}
-
-.placeholder-content {
-    border: 2px dashed #333;
-    padding: 32px;
-    border-radius: 12px;
-    text-align: center;
-}
-
-.timeline-controls {
-    height: 40px;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    align-items: center;
-    padding: 0 16px;
-    gap: 8px;
-    background-color: var(--bg-tertiary);
-}
-
-.timeline-scroll-area {
-    flex: 1;
-    overflow-x: auto;
-    overflow-y: hidden;
-    position: relative;
-    /* Custom scrollbar matching dark theme */
-}
-
-.icon-btn {
-    background: transparent;
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    border-radius: 4px;
-    cursor: pointer;
-    padding: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.icon-btn:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-.zoom-value {
-    font-size: 11px;
-    color: var(--text-secondary);
-    font-variant-numeric: tabular-nums;
-    width: 50px;
-    text-align: center;
-}
-
-.timeline-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: var(--text-secondary);
-    font-size: 14px;
-}
-
-/* Centered Playback Controls */
-.timeline-playback-controls {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.play-btn {
-    background: var(--text-accent);
-    border: none;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-    color: #000;
-}
-
-.play-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
-    /* Blue glow using accent color */
-}
-
-.play-btn:active {
-    transform: scale(0.95);
-}
-
-.play-btn .icon {
-    font-size: 14px;
-    line-height: 1;
-    margin-left: 2px;
-    /* Visual optical alignment for triangle */
-}
-
-.play-btn.playing .icon {
-    margin-left: 0;
-}
-
-.timeline-controls {
-    position: relative;
-    /* Context for absolute centering */
 }
