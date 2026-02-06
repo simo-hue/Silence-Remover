@@ -18,17 +18,22 @@ export class AudioAnalysisService {
         this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
 
-    async analyzeVideoAudio(file: File, options: SilenceOptions): Promise<AudioAnalysisResult> {
+    async analyzeVideoAudio(file: File, options: SilenceOptions, onProgress?: (p: number) => void): Promise<AudioAnalysisResult> {
+        onProgress?.(5); // Started
         const arrayBuffer = await file.arrayBuffer();
+        onProgress?.(20); // Loaded
         const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+        onProgress?.(40); // Decoded
 
         // 1. Generate Peaks for Waveform
-        const peaks = this.getPeaks(audioBuffer, 100); // 100 peaks per second of audio? Maybe simpler fixed count or dynamic. 
-        // Let's aim for 1000 peaks total for now, or purely based on canvas width. 
-        // Better: 1 peak per small window.
+        const peaks = this.getPeaks(audioBuffer, 100);
+        onProgress?.(50);
 
-        // 2. Detect Silences
+        // 2. Detect Silences with async chunks to allow UI updates?
+        // Ideally yes, but for now let's keep it sync for simplicity unless it freezes.
+        // If we want progress we need to make detectSilenceSegments async or pass callback
         const silences = this.detectSilenceSegments(audioBuffer, options);
+        onProgress?.(100);
 
         return {
             duration: audioBuffer.duration,

@@ -7,6 +7,29 @@
     gap: 8px;
 }
 
+.clip-actions {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.btn-icon-small {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon-small:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
 .clip-item {
     display: flex;
     align-items: center;

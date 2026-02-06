@@ -8,14 +8,30 @@
 }
 
 .clip-header {
-    height: 20px;
-    background-color: var(--bg-secondary);
+    background: #333;
+    color: #eee;
+    padding: 4px 8px;
     font-size: 11px;
-    color: var(--text-secondary);
-    padding: 0 4px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    line-height: 20px;
+    border-bottom: 1px solid #444;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.tiny-btn {
+    background: var(--primary-color);
+    border: none;
+    color: black;
+    padding: 2px 6px;
+    border-radius: 2px;
+    font-size: 9px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.tiny-btn:hover {
+    opacity: 0.9;
 }

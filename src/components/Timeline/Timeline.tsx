@@ -16,12 +16,14 @@ interface TimelineProps {
     items: TimelineItem[];
     currentTime: number;
     onScrub: (time: number) => void;
+    onAnalyzeItem: (id: string) => void;
 }
 
 export const Timeline: React.FC<TimelineProps> = ({
     items,
     currentTime,
-    onScrub
+    onScrub,
+    onAnalyzeItem
 }) => {
     const [pixelsPerSecond, setPixelsPerSecond] = useState(50); // Default Zoom
     const containerRef = useRef<HTMLDivElement>(null);
@@ -60,6 +62,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                                     globalCurrentTime={currentTime}
                                     startTimeOffset={start}
                                     onScrub={onScrub}
+                                    onAnalyze={() => onAnalyzeItem(item.id)}
                                     title={item.file.name}
                                 />
                             );

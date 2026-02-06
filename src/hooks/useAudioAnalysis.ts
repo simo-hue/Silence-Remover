@@ -27,10 +27,8 @@ export const useAudioAnalysis = (): UseAudioAnalysisReturn => {
 
         try {
             const mergedOptions = { ...DEFAULT_OPTIONS, ...options };
-            // Simulate progress or implement it in service if possible (decoding is one-shot usually)
-            setProgress(10);
-
-            const result = await audioService.analyzeVideoAudio(file, mergedOptions);
+            // Pass progress callback
+            const result = await audioService.analyzeVideoAudio(file, mergedOptions, (p) => setProgress(p));
 
             setProgress(100);
             return result;

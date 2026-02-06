@@ -16,3 +16,11 @@
         *   `FFmpegService`: Handles video trimming and concatenation in WASM.
         *   `Timeline`: Custom Canvas rendering for high-performance waveform visualization.
     *   **Dependencies**: `@ffmpeg/ffmpeg`, `@ffmpeg/util`, `lucide-react`.
+
+- [2026-02-06]: Added Analysis Buttons
+  - *Details*: Added separate buttons for "Analyze Clip" and "Analyze Timeline" in the preview control area.
+  - *Tech Notes*: Modified `App.tsx` to include new buttons. "Analyze Clip" triggers `handleAnalyzeItem` for the active clip. "Analyze Timeline" triggers `handleAnalyzeProject`.
+
+- [2026-02-06]: Refactored Analysis UI
+  - *Details*: Moved "Analyze Timeline" button to the main Header and "Analyze Clip" button to the Sidebar (ClipList item).
+  - *Tech Notes*: Removed analysis controls from `App.tsx` preview area. Added logic to `handleAnalyzeClipFromSidebar` to analyze matching timeline items from sidebar.

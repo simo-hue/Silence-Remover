@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { WaveformCanvas } from './WaveformCanvas';
 import './TimelineClip.css';
 
@@ -12,6 +12,7 @@ interface TimelineClipProps {
     startTimeOffset: number;
     onScrub: (globalTime: number) => void;
     title: string;
+    onAnalyze: () => void;
 }
 
 export const TimelineClip: React.FC<TimelineClipProps> = ({
@@ -22,6 +23,7 @@ export const TimelineClip: React.FC<TimelineClipProps> = ({
     globalCurrentTime,
     startTimeOffset,
     onScrub,
+    onAnalyze,
     title
 }) => {
     const width = duration * pixelsPerSecond;
@@ -34,7 +36,18 @@ export const TimelineClip: React.FC<TimelineClipProps> = ({
     return (
         <div className="timeline-clip-wrapper" style={{ width: width }}>
             <div className="clip-header" title={title}>
-                {title}
+                <span>{title}</span>
+                {peaks.length === 0 && (
+                    <button
+                        className="tiny-btn"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onAnalyze();
+                        }}
+                    >
+                        Analyze
+                    </button>
+                )}
             </div>
             <WaveformCanvas
                 peaks={peaks}

@@ -13,6 +13,7 @@ interface ClipListProps {
     clips: Clip[];
     onRemoveClip: (id: string) => void;
     onSelectClip: (id: string) => void;
+    onAnalyzeClip: (id: string) => void;
     selectedClipId?: string;
 }
 
@@ -51,15 +52,29 @@ export const ClipList: React.FC<ClipListProps> = ({
                             {clip.duration ? `${clip.duration.toFixed(1)}s` : '--:--'}
                         </span>
                     </div>
-                    <button
-                        className="btn-remove"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onRemoveClip(clip.id);
-                        }}
-                    >
-                        <Trash2 size={16} />
-                    </button>
+                    <div className="clip-actions">
+                        <button
+                            className="btn-icon-small"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onAnalyzeClip(clip.id);
+                            }}
+                            title="Analyze this clip in timeline"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M2 12h5l3 5 5-10 4 5h5" />
+                            </svg>
+                        </button>
+                        <button
+                            className="btn-remove"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onRemoveClip(clip.id);
+                            }}
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                    </div>
                 </li>
             ))}
         </ul>

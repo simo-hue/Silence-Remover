@@ -8,6 +8,7 @@ interface MainLayoutProps {
     timelineContent: React.ReactNode;
     onExport?: () => void;
     onOpenSettings?: () => void;
+    onAnalyzeProject?: () => void;
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({
@@ -15,7 +16,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     previewContent,
     timelineContent,
     onExport,
-    onOpenSettings
+    onOpenSettings,
+    onAnalyzeProject
 }) => {
     return (
         <div className="app-container">
@@ -25,6 +27,15 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                     <h1>Silence Remover</h1>
                 </div>
                 <div className="header-actions">
+                    <button
+                        className="btn-primary"
+                        onClick={onAnalyzeProject}
+                        title="Analyze all clips on the timeline"
+                        style={{ marginRight: '8px' }}
+                    >
+                        <span style={{ marginRight: '6px' }}>⚡</span>
+                        Analyze Timeline
+                    </button>
                     <button className="btn-icon" title="Settings" onClick={onOpenSettings}>
                         <Settings size={20} />
                     </button>

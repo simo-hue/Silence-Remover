@@ -186,36 +186,45 @@ function App() {
     }));
     setTimelineItems(prev => [...prev, ...newItems]);
     setViewMode('PROJECT'); // Switch to project view to see functionality
+
+    // Auto-start analysis for new items
+    performAnalysis(newItems);
   };
 
-  const handleAnalyzeProject = async () => {
-    // Analyze all items in timeline
-    // setTimelineItems(prev => [...prev]); // This line is not needed, state update will happen below
+  const performAnalysis = async (itemsToAnalyze: TimelineItem[]) => {
+    // We update state item by item to show progress
+    for (const item of itemsToAnalyze) {
+      if (item.peaks.length > 0) continue; // Already analyzed
 
-    const updatedItems = [...timelineItems];
-    let hasUpdates = false;
+      try {
+        const result = await analyze(item.file, silenceOptions);
 
-    for (let i = 0; i < updatedItems.length; i++) {
-      const item = updatedItems[i];
-      if (item.peaks.length === 0) { // Not analyzed
-        try {
-          const result = await analyze(item.file, silenceOptions);
-          updatedItems[i] = {
-            ...item,
-            peaks: result.peaks,
-            silences: result.silences,
-            duration: result.duration
-          };
-          hasUpdates = true;
-        } catch (e) {
-          console.error(e);
-        }
+        setTimelineItems(currentItems => {
+          return currentItems.map(i => {
+            if (i.id === item.id) {
+              return {
+                ...i,
+                peaks: result.peaks,
+                silences: result.silences,
+                duration: result.duration
+              };
+            }
+            return i;
+          });
+        });
+      } catch (e) {
+        console.error("Analysis failed for item", item.id, e);
       }
     }
+  };
 
-    if (hasUpdates) {
-      setTimelineItems(updatedItems);
-    }
+  const handleAnalyzeProject = () => {
+    performAnalysis(timelineItems);
+  };
+
+  const handleAnalyzeItem = (id: string) => {
+    const item = timelineItems.find(i => i.id === id);
+    if (item) performAnalysis([item]);
   };
 
   /* Legacy single clip analyze - replaced by project analyze
@@ -261,6 +270,23 @@ function App() {
     setCurrentTime(time);
   };
 
+  /* New handler for sidebar analyze button */
+  const handleAnalyzeClipFromSidebar = (clipId: string) => {
+    // Find all timeline items that use this clipId
+    const itemsToAnalyze = timelineItems.filter(item => item.clipId === clipId);
+
+    if (itemsToAnalyze.length === 0) {
+      // Optional: Logic to add to timeline if not present could go here, 
+      // but for now we just handle existing timeline items.
+      alert("This clip is not on the timeline yet. Add it to the timeline to analyze.");
+      return;
+    }
+
+    performAnalysis(itemsToAnalyze);
+    // Switch to project view to see progress
+    setViewMode('PROJECT');
+  };
+
   const sidebarContent = (
     <>
       <div style={{ marginBottom: '16px' }}>
@@ -276,6 +302,7 @@ function App() {
         clips={clips}
         onRemoveClip={handleRemoveClip}
         onSelectClip={handleSelectClip}
+        onAnalyzeClip={handleAnalyzeClipFromSidebar}
         selectedClipId={selectedClipId}
       />
     </>
@@ -306,18 +333,16 @@ function App() {
           <div style={{ padding: '8px' }}>
             {viewMode === 'PROJECT' && (
               <>
-                <button
-                  onClick={handleAnalyzeProject}
-                  disabled={isAnalyzing}
-                  className="btn-primary"
-                  style={{ margin: '0 auto', width: 'fit-content' }}
-                >
-                  {isAnalyzing ? 'Analyzing Project...' : 'Analyze Project Silences'}
-                </button>
-                {error && <div style={{ color: 'red' }}>{error}</div>}
+                {/* Buttons moved to Header and Sidebar */}
+                {error && <div style={{ color: 'red', marginTop: '4px' }}>{error}</div>}
+                {isAnalyzing && (
+                  <div style={{ marginTop: 10, color: 'var(--text-accent)' }}>
+                    Analyzing...
+                  </div>
+                )}
                 {isExporting && (
                   <div style={{ marginTop: 10, color: 'var(--text-accent)' }}>
-                    Exporting Project... {exportProgress}%
+                    Exporting Project... {exportProgress.toFixed(0)}%
                   </div>
                 )}
               </>
@@ -342,6 +367,7 @@ function App() {
       items={timelineItems}
       currentTime={currentTime}
       onScrub={handleTimelineScrub}
+      onAnalyzeItem={handleAnalyzeItem}
     />
   );
 
@@ -352,6 +378,7 @@ function App() {
         previewContent={previewContent}
         timelineContent={timelineContent}
         onExport={handleExport}
+        onAnalyzeProject={handleAnalyzeProject}
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
       <SettingsDialog
