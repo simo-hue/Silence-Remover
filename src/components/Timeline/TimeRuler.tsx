@@ -12,7 +12,7 @@ export const TimeRuler: React.FC<TimeRulerProps> = ({
     duration,
     pixelsPerSecond,
     height = 24,
-    currentTime, // Destructure to avoid unused warning if strictly linted, or just leave it
+    // currentTime, 
     onScrub
 }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);

@@ -11,9 +11,13 @@ import { useExport } from './hooks/useExport';
 import type { AudioAnalysisResult, SilenceOptions } from './services/AudioAnalysisService';
 import { Timeline } from './components/Timeline/Timeline';
 import type { TimelineItem } from './components/Timeline/Timeline';
+
 import { SettingsDialog } from './components/Settings/SettingsDialog';
-import { Plus } from 'lucide-react';
+import { Plus, Play, Pause, SkipBack, SkipForward } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
+import { ExportDialog } from './components/Export/ExportDialog';
+import { ExportProgressModal } from './components/Export/ExportProgressModal';
+import type { ExportQuality } from './services/FFmpegService';
 
 interface ClipWithData extends Clip {
   analysis?: AudioAnalysisResult;
@@ -28,6 +32,7 @@ function App() {
   const { analyze, isAnalyzing, error } = useAudioAnalysis();
   const { exportVideo, isExporting, progress: exportProgress } = useExport();
   const [currentTime, setCurrentTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [silenceOptions, setSilenceOptions] = useState<SilenceOptions>({
@@ -287,17 +292,97 @@ function App() {
   };
   */
 
-  const handleExport = async () => {
+
+
+
+
+  /* Playback Controls */
+  const togglePlay = () => {
+    setIsPlaying(p => !p);
+  };
+
+  const handleVideoEnded = () => {
+    // Find current clip index from current timeline state
+    if (!currentItemInfo) {
+      setIsPlaying(false);
+      return;
+    }
+
+    const currentIndex = timelineItems.findIndex(item => item.id === currentItemInfo.item.id);
+
+    if (currentIndex !== -1 && currentIndex < timelineItems.length - 1) {
+      // Move to next clip
+      // Calculate start time of next item
+      let nextStartTime = 0;
+      for (let i = 0; i <= currentIndex; i++) {
+        nextStartTime += timelineItems[i].duration;
+      }
+      // Jump to next clip + tiny offset to ensure we land inside it
+      setCurrentTime(nextStartTime + 0.01);
+    } else {
+      // End of project
+      setIsPlaying(false);
+    }
+  };
+
+  /* Playback Controls */
+  const togglePlay = () => {
+    setIsPlaying(p => !p);
+  };
+
+  const handleVideoEnded = () => {
+    // Find current clip index from current timeline state
+    if (!currentItemInfo) {
+      setIsPlaying(false);
+      return;
+    }
+
+    const currentIndex = timelineItems.findIndex(item => item.id === currentItemInfo.item.id);
+
+    if (currentIndex !== -1 && currentIndex < timelineItems.length - 1) {
+      // Move to next clip
+      // Calculate start time of next item
+      let nextStartTime = 0;
+      for (let i = 0; i <= currentIndex; i++) {
+        nextStartTime += timelineItems[i].duration;
+      }
+      // Jump to next clip + tiny offset to ensure we land inside it
+      setCurrentTime(nextStartTime + 0.01);
+    } else {
+      // End of project
+      setIsPlaying(false);
+    }
+  };
+
+  /* New Export Flow */
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+
+  const handleExportClick = () => {
     if (timelineItems.length === 0) return;
 
     // Check if analyzed
     if (timelineItems.some(i => i.duration === 0)) {
-      alert("Some clips are not analyzed. Please Analyze Project first.");
+      toast.error("Some clips are not analyzed. Please Analyze Project first.");
       return;
     }
 
-    await exportVideo(timelineItems);
+    setIsExportDialogOpen(true);
   };
+
+  const handleConfirmExport = async (quality: ExportQuality) => {
+    setIsExportDialogOpen(false);
+    // Add small delay to allow modal to close smoothly
+    setTimeout(() => {
+      exportVideo(timelineItems, { quality });
+    }, 100);
+  };
+
+  // Replace old handleExport
+  /*
+  const handleExport = async () => {
+    // ...
+  }; 
+  */
 
   const handleTimelineScrub = (time: number) => {
     setViewMode('PROJECT');
@@ -325,6 +410,16 @@ function App() {
     <>
       <div style={{ marginBottom: '16px' }}>
         <DropZone onFilesDropped={handleFilesDropped} />
+      </div>
+      <div style={{ marginBottom: '10px', display: 'flex', gap: '8px' }}>
+        <button
+          className="btn-secondary"
+          style={{ flex: 1, justifyContent: 'center', background: isPlaying ? 'var(--text-accent)' : '#333', color: isPlaying ? 'black' : 'white' }}
+          onClick={togglePlay}
+        >
+          {isPlaying ? <Pause size={16} style={{ marginRight: 6 }} /> : <Play size={16} style={{ marginRight: 6 }} />}
+          {isPlaying ? "Pause" : "Play Project"}
+        </button>
       </div>
       <div style={{ marginBottom: '10px', display: 'flex', gap: '8px' }}>
         <button className="btn-secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={handleAddToTimeline}>
@@ -361,6 +456,8 @@ function App() {
               src={activeUrl}
               currentTime={activeTime}
               onTimeUpdate={handleTimeUpdate}
+              isPlaying={viewMode === 'PROJECT' ? isPlaying : false}
+              onEnded={viewMode === 'PROJECT' ? handleVideoEnded : undefined}
             />
           </div>
 
@@ -374,11 +471,14 @@ function App() {
                     Analyzing...
                   </div>
                 )}
+                {/* isExporting check moved to global Modal */}
+                {/* 
                 {isExporting && (
                   <div style={{ marginTop: 10, color: 'var(--text-accent)' }}>
                     Exporting Project... {exportProgress.toFixed(0)}%
                   </div>
                 )}
+                */}
               </>
             )}
             {viewMode === 'SOURCE' && (
@@ -405,13 +505,25 @@ function App() {
     />
   );
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !isExportDialogOpen && !isSettingsOpen) {
+        e.preventDefault();
+        togglePlay();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isExportDialogOpen, isSettingsOpen]);
+
   return (
     <>
       <MainLayout
         sidebarContent={sidebarContent}
         previewContent={previewContent}
         timelineContent={timelineContent}
-        onExport={handleExport}
+        onExport={handleExportClick}
         onAnalyzeProject={handleAnalyzeProject}
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
@@ -421,6 +533,15 @@ function App() {
         options={silenceOptions}
         onChange={setSilenceOptions}
       />
+
+      <ExportDialog
+        isOpen={isExportDialogOpen}
+        onClose={() => setIsExportDialogOpen(false)}
+        onConfirm={handleConfirmExport}
+      />
+
+      {isExporting && <ExportProgressModal progress={exportProgress} />}
+
       <Toaster position="bottom-right" theme="dark" />
     </>
   );

@@ -5,38 +5,54 @@ interface VideoPreviewProps {
     currentTime: number;
     onTimeUpdate: (time: number) => void;
     onDurationChange?: (duration: number) => void;
+    isPlaying?: boolean;
+    onEnded?: () => void;
 }
 
 export const VideoPreview: React.FC<VideoPreviewProps> = ({
     src,
     currentTime,
     onTimeUpdate,
-    onDurationChange
+    onDurationChange,
+    isPlaying = false,
+    onEnded
 }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const isSeekingRef = useRef(false);
 
     // Sync external currentTime -> Video element
-    // Only if difference is significant to avoid stutter loop
     useEffect(() => {
         const video = videoRef.current;
         if (!video) return;
 
+        // Only sync if difference is significant to avoid fighting with the video's own playback progress
         if (Math.abs(video.currentTime - currentTime) > 0.2) {
-            if (!isSeekingRef.current) {
-                // If we are not currently dragging scrub, update video.
-                // But scrub updates currentTime... 
-                // We need to differentiate "Video Playing update" vs "User Drag Update"
-                // Usually, if the prop changes significantly, we seek.
-                video.currentTime = currentTime;
-            }
+            // We can add a check if we are "playing" vs "scrubbing", but usually
+            // if the prop updates from outside while playing, it matches video time anyway.
+            // If it deviates, it means a Seek happened.
+            video.currentTime = currentTime;
         }
     }, [currentTime]);
 
+    // Apply Play/Pause state
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        if (isPlaying) {
+            const playPromise = video.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.warn("Auto-play prevented:", error);
+                });
+            }
+        } else {
+            video.pause();
+        }
+    }, [isPlaying, src]);
+
     const handleTimeUpdate = () => {
         if (videoRef.current) {
-            // Avoid infinite loop if we round or if update is too frequent
-            // Just pass it up. Parent decides if it pushes back down.
             onTimeUpdate(videoRef.current.currentTime);
         }
     };
@@ -53,21 +69,10 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                 ref={videoRef}
                 src={src}
                 style={{ maxHeight: '100%', width: 'auto', height: 'auto', maxWidth: '100%' }}
-                controls={false} // Custom controls or use browser controls? 
-                // Design says: "Header: ... controls main". 
-                // "Preview: Play/pause del progetto ... Navigazione tra le clip"
-                // Let's enable default controls for now for easy testing, or minimal custom overlay.
-                // We need Custom Controls for "Play Project" vs "Play Clip".
-                // Let's stick to NO native controls and use our App buttons?
-                // For MVP: native controls are easiest for Volume/Fullscreen.
-                // But they might conflict with our custom play button if we have one.
-                // Let's use simple clicks on video to toggle play.
-                onClick={(e) => {
-                    const v = e.currentTarget;
-                    v.paused ? v.play() : v.pause();
-                }}
+                controls={false}
                 onTimeUpdate={handleTimeUpdate}
                 onLoadedMetadata={handleDurationChange}
+                onEnded={onEnded}
             />
         </div>
     );

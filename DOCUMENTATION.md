@@ -36,3 +36,34 @@
 - [2026-02-06]: Professional Timeline Redesign
   - *Details*: Major visual overhaul of the timeline. Added `TimeRuler`, professional status metrics (Total Duration, Clip Count), and refined the dark theme aesthetics.
   - *Tech Notes*: Created `TimeRuler.tsx`. Refactored `Timeline.tsx` layout. Updated `Timeline.css` variables.
+
+- [2026-02-06]: Fix FFmpeg Core Loading
+  - *Details*: Resolved "failed to import ffmpeg-core.js" error by installing `@ffmpeg/core` and refactoring `FFmpegService` to use local imports.
+  - *Tech Notes*:
+    - Installed `@ffmpeg/core@0.12.6`.
+    - Updated `FFmpegService.ts` to import `coreURL` and `wasmURL` directly from `@ffmpeg/core` and `@ffmpeg/core/wasm`.
+    - Updated `vite.config.ts` to exclude `@ffmpeg/core` from optimization.
+    - Verified build successfully bundles `ffmpeg-core.wasm`.
+
+- [2026-02-06]: Export UI - Quality & Progress
+  - *Details*: Added a robust professional export flow.
+  - *Features*:
+    - **Export Dialog**: Allows choosing between 4K, 1080p, 720p, and Original quality.
+    - **Progress Overlay**: Shows a visible progress bar during export to block interaction.
+  - *Tech Notes*:
+    - Created `ExportDialog.tsx` and `ExportProgressModal.tsx`.
+    - Updated `FFmpegService.ts` to support dynamic scaling (`-vf scale=...`) and pixel format conversion (`yuv420p`).
+
+- [2026-02-06]: Smoother Export Progress
+  - *Details*: Implemented real-time granular progress tracking for exports.
+  - *Tech Notes*:
+    - Refactored `FFmpegService` to parse `time=HH:MM:SS.mm` logs from FFmpeg.
+    - Progress is now calculated based on actual encoded duration vs total project duration, providing sub-second updates.
+
+- [2026-02-06]: Playback Controls & Export Enhancements
+  - *Details*: Implemented interactive playback controls (Play/Pause, seamless clip transitions) and granular export progress tracking.
+  - *Tech Notes*:
+    - **App.tsx**: Added `isPlaying` state and orchestration logic for clip transitions. Added Play/Pause button and Spacebar shortcut.
+    - **VideoPreview**: Updated to support programmatic playback control via props.
+    - **FFmpegService**: Enhanced with granular progress parsing and quality-based scaling.
+    - **Export UI**: Added `ExportDialog` and `ExportProgressModal` components.

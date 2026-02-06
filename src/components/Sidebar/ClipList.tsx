@@ -21,6 +21,7 @@ export const ClipList: React.FC<ClipListProps> = ({
     clips,
     onRemoveClip,
     onSelectClip,
+    onAnalyzeClip,
     selectedClipId
 }) => {
     if (clips.length === 0) {
