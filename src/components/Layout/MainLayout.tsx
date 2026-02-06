@@ -1,13 +1,13 @@
 import React from 'react';
 import './MainLayout.css';
-import { Settings, Download, Scissors } from 'lucide-react';
+import { Download, Scissors } from 'lucide-react';
 
 interface MainLayoutProps {
     sidebarContent: React.ReactNode;
     previewContent: React.ReactNode;
     timelineContent: React.ReactNode;
     onExport?: () => void;
-    onOpenSettings?: () => void;
+    // onOpenSettings?: () => void; // Removed
     onAnalyzeProject?: () => void;
 }
 
@@ -16,7 +16,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     previewContent,
     timelineContent,
     onExport,
-    onOpenSettings,
+    // onOpenSettings,
     onAnalyzeProject
 }) => {
     return (
@@ -36,9 +36,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                         <span style={{ marginRight: '6px' }}>⚡</span>
                         Analyze Timeline
                     </button>
-                    <button className="btn-icon" title="Settings" onClick={onOpenSettings}>
-                        <Settings size={20} />
-                    </button>
+                    {/* Settings Button Removed */}
                     <button className="btn-primary" onClick={onExport}>
                         <Download size={18} />
                         <span>Export</span>

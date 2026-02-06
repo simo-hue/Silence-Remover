@@ -12,8 +12,8 @@ import type { AudioAnalysisResult, SilenceOptions } from './services/AudioAnalys
 import { Timeline } from './components/Timeline/Timeline';
 import type { TimelineItem } from './components/Timeline/Timeline';
 
-import { SettingsDialog } from './components/Settings/SettingsDialog';
-import { Plus, Play, Pause, SkipBack, SkipForward } from 'lucide-react';
+import { SilenceControls } from './components/Sidebar/SilenceControls';
+import { Plus, Play, Pause } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { ExportDialog } from './components/Export/ExportDialog';
 import { ExportProgressModal } from './components/Export/ExportProgressModal';
@@ -34,7 +34,7 @@ function App() {
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  // const [isSettingsOpen, setIsSettingsOpen] = useState(false); // Removed
   const [silenceOptions, setSilenceOptions] = useState<SilenceOptions>({
     thresholdDb: -40,
     minDuration: 0.5,
@@ -197,8 +197,8 @@ function App() {
     performAnalysis(newItems);
   };
 
-  const performAnalysis = async (itemsToAnalyze: TimelineItem[]) => {
-    console.log("Starting analysis for items:", itemsToAnalyze.length);
+  const performAnalysis = async (itemsToAnalyze: TimelineItem[], force: boolean = false) => {
+    console.log("Starting analysis for items:", itemsToAnalyze.length, "Force:", force);
     const count = itemsToAnalyze.length;
     const toastId = toast.loading(`Starting analysis for ${count} clip${count > 1 ? 's' : ''}...`);
 
@@ -206,7 +206,7 @@ function App() {
 
     // We update state item by item to show progress
     for (const item of itemsToAnalyze) {
-      if (item.peaks.length > 0) {
+      if (!force && item.peaks.length > 0) {
         console.log("Skipping already analyzed item:", item.id);
         processed++;
         continue; // Already analyzed
@@ -325,35 +325,6 @@ function App() {
     }
   };
 
-  /* Playback Controls */
-  const togglePlay = () => {
-    setIsPlaying(p => !p);
-  };
-
-  const handleVideoEnded = () => {
-    // Find current clip index from current timeline state
-    if (!currentItemInfo) {
-      setIsPlaying(false);
-      return;
-    }
-
-    const currentIndex = timelineItems.findIndex(item => item.id === currentItemInfo.item.id);
-
-    if (currentIndex !== -1 && currentIndex < timelineItems.length - 1) {
-      // Move to next clip
-      // Calculate start time of next item
-      let nextStartTime = 0;
-      for (let i = 0; i <= currentIndex; i++) {
-        nextStartTime += timelineItems[i].duration;
-      }
-      // Jump to next clip + tiny offset to ensure we land inside it
-      setCurrentTime(nextStartTime + 0.01);
-    } else {
-      // End of project
-      setIsPlaying(false);
-    }
-  };
-
   /* New Export Flow */
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
 
@@ -377,13 +348,6 @@ function App() {
     }, 100);
   };
 
-  // Replace old handleExport
-  /*
-  const handleExport = async () => {
-    // ...
-  }; 
-  */
-
   const handleTimelineScrub = (time: number) => {
     setViewMode('PROJECT');
     setCurrentTime(time);
@@ -397,7 +361,7 @@ function App() {
     if (itemsToAnalyze.length === 0) {
       // Optional: Logic to add to timeline if not present could go here, 
       // but for now we just handle existing timeline items.
-      alert("This clip is not on the timeline yet. Add it to the timeline to analyze.");
+      toast.error("This clip is not on the timeline yet. Add it to the timeline to analyze.");
       return;
     }
 
@@ -420,6 +384,14 @@ function App() {
           {isPlaying ? <Pause size={16} style={{ marginRight: 6 }} /> : <Play size={16} style={{ marginRight: 6 }} />}
           {isPlaying ? "Pause" : "Play Project"}
         </button>
+      </div>
+      <div style={{ marginBottom: '10px' }}>
+        <SilenceControls
+          options={silenceOptions}
+          onChange={setSilenceOptions}
+          onApply={() => performAnalysis(timelineItems, true)}
+          isAnalyzing={isAnalyzing}
+        />
       </div>
       <div style={{ marginBottom: '10px', display: 'flex', gap: '8px' }}>
         <button className="btn-secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={handleAddToTimeline}>
@@ -471,14 +443,6 @@ function App() {
                     Analyzing...
                   </div>
                 )}
-                {/* isExporting check moved to global Modal */}
-                {/* 
-                {isExporting && (
-                  <div style={{ marginTop: 10, color: 'var(--text-accent)' }}>
-                    Exporting Project... {exportProgress.toFixed(0)}%
-                  </div>
-                )}
-                */}
               </>
             )}
             {viewMode === 'SOURCE' && (
@@ -508,14 +472,14 @@ function App() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && !isExportDialogOpen && !isSettingsOpen) {
+      if (e.code === 'Space' && !isExportDialogOpen) {
         e.preventDefault();
         togglePlay();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isExportDialogOpen, isSettingsOpen]);
+  }, [isExportDialogOpen]);
 
   return (
     <>
@@ -523,15 +487,8 @@ function App() {
         sidebarContent={sidebarContent}
         previewContent={previewContent}
         timelineContent={timelineContent}
-        onExport={handleExportClick}
         onAnalyzeProject={handleAnalyzeProject}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-      />
-      <SettingsDialog
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        options={silenceOptions}
-        onChange={setSilenceOptions}
+        onExport={handleExportClick}
       />
 
       <ExportDialog
