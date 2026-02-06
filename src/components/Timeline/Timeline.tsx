@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { TimelineClip } from './TimelineClip';
 import { TimeRuler } from './TimeRuler';
-import { ZoomIn, ZoomOut, Clock, Film } from 'lucide-react'; // Added icons
+import { ZoomIn, ZoomOut, Clock, Film, Play, Pause } from 'lucide-react'; // Added icons
 import './Timeline.css';
 
 export interface TimelineItem {
@@ -18,13 +18,17 @@ interface TimelineProps {
     currentTime: number;
     onScrub: (time: number) => void;
     onAnalyzeItem: (id: string) => void;
+    isPlaying: boolean;
+    onTogglePlay: () => void;
 }
 
 export const Timeline: React.FC<TimelineProps> = ({
     items,
     currentTime,
     onScrub,
-    onAnalyzeItem
+    onAnalyzeItem,
+    isPlaying,
+    onTogglePlay
 }) => {
     const [pixelsPerSecond, setPixelsPerSecond] = useState(50); // Default Zoom
     const containerRef = useRef<HTMLDivElement>(null);
@@ -55,6 +59,17 @@ export const Timeline: React.FC<TimelineProps> = ({
                     <button className="icon-btn" onClick={handleZoomOut} title="Zoom Out"><ZoomOut size={16} /></button>
                     <div className="zoom-value">{Math.round(pixelsPerSecond)} px/s</div>
                     <button className="icon-btn" onClick={handleZoomIn} title="Zoom In"><ZoomIn size={16} /></button>
+                </div>
+
+                {/* Centered Playback Controls */}
+                <div className="timeline-playback-controls">
+                    <button
+                        className={`play-btn ${isPlaying ? 'playing' : ''}`}
+                        onClick={onTogglePlay}
+                        title={isPlaying ? "Pause (Space)" : "Play (Space)"}
+                    >
+                        {isPlaying ? <Pause size={16} fill="currentColor" strokeWidth={0} /> : <Play size={16} fill="currentColor" strokeWidth={0} style={{ marginLeft: 2 }} />}
+                    </button>
                 </div>
 
                 <div className="timeline-metrics">

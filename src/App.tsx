@@ -13,7 +13,7 @@ import { Timeline } from './components/Timeline/Timeline';
 import type { TimelineItem } from './components/Timeline/Timeline';
 
 import { SilenceControls } from './components/Sidebar/SilenceControls';
-import { Plus, Play, Pause } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { ExportDialog } from './components/Export/ExportDialog';
 import { ExportProgressModal } from './components/Export/ExportProgressModal';
@@ -375,16 +375,7 @@ function App() {
       <div style={{ marginBottom: '16px' }}>
         <DropZone onFilesDropped={handleFilesDropped} />
       </div>
-      <div style={{ marginBottom: '10px', display: 'flex', gap: '8px' }}>
-        <button
-          className="btn-secondary"
-          style={{ flex: 1, justifyContent: 'center', background: isPlaying ? 'var(--text-accent)' : '#333', color: isPlaying ? 'black' : 'white' }}
-          onClick={togglePlay}
-        >
-          {isPlaying ? <Pause size={16} style={{ marginRight: 6 }} /> : <Play size={16} style={{ marginRight: 6 }} />}
-          {isPlaying ? "Pause" : "Play Project"}
-        </button>
-      </div>
+
       <div style={{ marginBottom: '10px' }}>
         <SilenceControls
           options={silenceOptions}
@@ -466,6 +457,8 @@ function App() {
       currentTime={currentTime}
       onScrub={handleTimelineScrub}
       onAnalyzeItem={handleAnalyzeItem}
+      isPlaying={isPlaying}
+      onTogglePlay={togglePlay}
     />
   );
 
