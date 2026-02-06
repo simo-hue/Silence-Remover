@@ -1,7 +1,8 @@
 /* Main Wrapper for a single clip on the timeline */
 .timeline-clip-wrapper {
     position: relative;
-    height: 100%;
+    height: auto;
+    /* Let content define height */
     /* Distinct separation */
     border-right: 1px solid #000;
     border-left: 1px solid rgba(255, 255, 255, 0.1);

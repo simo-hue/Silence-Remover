@@ -216,6 +216,8 @@
 .timeline-tracks-container {
     display: flex;
     flex: 1;
+    align-items: flex-start;
+    /* Prevent clips from stretching to full height */
     padding-bottom: 20px;
     /* Moved from top to bottom */
     position: relative;

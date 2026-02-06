@@ -82,7 +82,7 @@ export const TimelineClip: React.FC<TimelineClipProps> = ({
                 silences={silences}
                 duration={duration}
                 width={width}
-                height={120} // Slightly less to fit header
+                height={80} // Reduced height
                 pixelsPerSecond={pixelsPerSecond}
                 currentTime={localCurrentTime} // WaveformCanvas draws playhead if 0 <= t <= duration
                 onScrub={(localTime) => {
