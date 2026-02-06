@@ -1,0 +1,21 @@
+.timeline-clip-wrapper {
+    position: relative;
+    height: 100%;
+    border-right: 1px solid var(--border-color);
+    background-color: var(--bg-tertiary);
+    flex-shrink: 0;
+    /* Don't shrink, we scroll */
+}
+
+.clip-header {
+    height: 20px;
+    background-color: var(--bg-secondary);
+    font-size: 11px;
+    color: var(--text-secondary);
+    padding: 0 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    line-height: 20px;
+}

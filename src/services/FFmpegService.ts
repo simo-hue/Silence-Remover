@@ -1,5 +1,6 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { toBlobURL, fetchFile } from '@ffmpeg/util';
+import type { TimelineItem } from '../components/Timeline/Timeline';
 
 export class FFmpegService {
     private ffmpeg: FFmpeg | null = null;
@@ -38,25 +39,71 @@ export class FFmpegService {
         });
     }
 
-    async exportVideo(
-        file: File,
-        silences: { start: number; end: number }[],
-        duration: number,
+    async exportProject(
+        items: TimelineItem[],
         onProgress: (ratio: number) => void
     ): Promise<Blob> {
         if (!this.ffmpeg || !this.loaded) await this.load();
         const ffmpeg = this.ffmpeg!;
 
-        const inputName = 'input.mp4';
-        await ffmpeg.writeFile(inputName, await fetchFile(file));
+        const allSegments: string[] = [];
 
-        // Calculate "Keep" segments
-        // Silences: [{0.5, 1.0}, {3.0, 4.0}] Duration: 10
-        // Keeps: [{0, 0.5}, {1.0, 3.0}, {4.0, 10}]
+        // 1. Process each clip
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            const clipProgressStart = i / items.length;
+            const clipProgressEnd = (i + 1) / items.length;
+
+            const segments = await this.processClip(
+                item.file,
+                item.silences,
+                item.duration,
+                (ratio) => {
+                    // Map local clip ratio 0-1 to global ratio
+                    const globalRatio = clipProgressStart + (ratio * (clipProgressEnd - clipProgressStart));
+                    onProgress(globalRatio * 0.9); // Reserve 10% for concat
+                },
+                i // Index to prefix files unique per clip
+            );
+            allSegments.push(...segments);
+        }
+
+        // 2. Concat
+        onProgress(0.95);
+        const listContent = allSegments.map(name => `file '${name}'`).join('\n');
+        await ffmpeg.writeFile('list.txt', listContent);
+
+        await ffmpeg.exec([
+            '-f', 'concat',
+            '-safe', '0',
+            '-i', 'list.txt',
+            '-c', 'copy',
+            'output.mp4'
+        ]);
+
+        const data = await ffmpeg.readFile('output.mp4') as Uint8Array;
+
+        // Cleanup? 
+        // Ideally we delete all 'seg_x_y.mp4' files.
+        // For prototype, memory might fill up if we don't.
+
+        return new Blob([(data as Uint8Array).buffer as unknown as ArrayBuffer], { type: 'video/mp4' });
+    }
+
+    // Helper to process a signle clip and return list of segment filenames to concat
+    private async processClip(
+        file: File,
+        silences: { start: number; end: number }[],
+        duration: number,
+        onProgress: (ratio: number) => void,
+        clipIndex: number
+    ): Promise<string[]> {
+        const ffmpeg = this.ffmpeg!;
+        const inputName = `input_${clipIndex}.mp4`;
+        await ffmpeg.writeFile(inputName, await fetchFile(file));
 
         const keeps: { start: number; end: number }[] = [];
         let currentPos = 0;
-
         for (const s of silences) {
             if (s.start > currentPos) {
                 keeps.push({ start: currentPos, end: s.start });
@@ -67,22 +114,12 @@ export class FFmpegService {
             keeps.push({ start: currentPos, end: duration });
         }
 
-        // Step 1: Create Segment Files (Transcoding or Stream Copy?)
-        // Stream copy (-c copy) is fast but imprecise cutting (keyframes).
-        // For Silence Remover, precision is key. Recoding is safer.
-        // We can use -ss -to with re-encoding.
-
         const segmentNames: string[] = [];
-
-        // We can do it in one complex command or multiple.
-        // Multiple is easier to debug.
 
         for (let i = 0; i < keeps.length; i++) {
             const seg = keeps[i];
-            const outName = `seg_${i}.mp4`;
+            const outName = `seg_${clipIndex}_${i}.mp4`;
 
-            // Command: ffmpeg -i input.mp4 -ss [start] -to [end] -c:v libx264 -preset ultrafast seg_i.mp4
-            // 'ultrafast' for speed.
             await ffmpeg.exec([
                 '-i', inputName,
                 '-ss', seg.start.toString(),
@@ -94,30 +131,31 @@ export class FFmpegService {
             ]);
 
             segmentNames.push(outName);
-            onProgress((i + 1) / (keeps.length * 2)); // 50% progress for segments
+            onProgress((i + 1) / keeps.length);
         }
 
-        // Step 2: Concat
-        const listContent = segmentNames.map(name => `file '${name}'`).join('\n');
-        await ffmpeg.writeFile('list.txt', listContent);
+        // Clean up input immediately to save memory
+        await ffmpeg.deleteFile(inputName);
 
-        await ffmpeg.exec([
-            '-f', 'concat',
-            '-safe', '0',
-            '-i', 'list.txt',
-            '-c', 'copy', // Copy since we just re-encoded matching parts
-            'output.mp4'
-        ]);
+        return segmentNames;
+    }
 
-        const data = await ffmpeg.readFile('output.mp4') as Uint8Array;
-
-        // Cleanup
-        // await ffmpeg.deleteFile(inputName);
-        // segmentNames.forEach(n => ffmpeg.deleteFile(n));
-        // await ffmpeg.deleteFile('list.txt');
-        // await ffmpeg.deleteFile('output.mp4');
-
-        return new Blob([(data as Uint8Array).buffer as unknown as ArrayBuffer], { type: 'video/mp4' });
+    // Legacy method for single clip (could delegate to exportProject or processClip)
+    async exportVideo(
+        file: File,
+        silences: { start: number; end: number }[],
+        duration: number,
+        onProgress: (ratio: number) => void
+    ): Promise<Blob> {
+        // Just wrap as a single timeline item project
+        return this.exportProject([{
+            id: 'temp',
+            clipId: 'temp',
+            file,
+            silences,
+            duration,
+            peaks: []
+        }], onProgress);
     }
 }
 

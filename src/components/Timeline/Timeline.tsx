@@ -1,20 +1,25 @@
 import React, { useState, useRef } from 'react';
-import { WaveformCanvas } from './WaveformCanvas';
+import { TimelineClip } from './TimelineClip';
 import { ZoomIn, ZoomOut } from 'lucide-react';
 import './Timeline.css';
 
-interface TimelineProps {
-    duration: number;
+export interface TimelineItem {
+    id: string; // unique instance id
+    clipId: string;
+    file: File;
     peaks: number[];
     silences: { start: number; end: number }[];
+    duration: number;
+}
+
+interface TimelineProps {
+    items: TimelineItem[];
     currentTime: number;
     onScrub: (time: number) => void;
 }
 
 export const Timeline: React.FC<TimelineProps> = ({
-    duration,
-    peaks,
-    silences,
+    items,
     currentTime,
     onScrub
 }) => {
@@ -24,9 +29,7 @@ export const Timeline: React.FC<TimelineProps> = ({
     const handleZoomIn = () => setPixelsPerSecond(prev => Math.min(prev * 1.5, 500));
     const handleZoomOut = () => setPixelsPerSecond(prev => Math.max(prev / 1.5, 10));
 
-    const totalWidth = duration * pixelsPerSecond;
-    // Safety cap for extremely long videos if simple canvas approach
-    const safeWidth = Math.min(totalWidth, 32000);
+    let currentOffset = 0;
 
     return (
         <div className="timeline-container">
@@ -34,25 +37,41 @@ export const Timeline: React.FC<TimelineProps> = ({
                 <button className="icon-btn" onClick={handleZoomOut}><ZoomOut size={16} /></button>
                 <div className="zoom-value">{Math.round(pixelsPerSecond)} px/s</div>
                 <button className="icon-btn" onClick={handleZoomIn}><ZoomIn size={16} /></button>
+                <div style={{ marginLeft: 'auto', fontSize: '12px', color: '#888' }}>
+                    {items.length} Clips
+                </div>
             </div>
 
             <div className="timeline-scroll-area" ref={containerRef}>
-                {duration > 0 ? (
-                    <WaveformCanvas
-                        peaks={peaks}
-                        silences={silences}
-                        duration={duration}
-                        width={safeWidth}
-                        height={200}
-                        pixelsPerSecond={pixelsPerSecond}
-                        currentTime={currentTime}
-                        onScrub={onScrub}
-                    />
-                ) : (
-                    <div className="timeline-placeholder">
-                        Load a clip to view timeline
-                    </div>
-                )}
+                <div className="timeline-tracks-container" style={{ display: 'flex', height: '100%' }}>
+                    {items.length > 0 ? (
+                        items.map((item) => {
+                            const start = currentOffset;
+                            currentOffset += item.duration;
+
+                            return (
+                                <TimelineClip
+                                    key={item.id}
+                                    id={item.id}
+                                    peaks={item.peaks}
+                                    silences={item.silences}
+                                    duration={item.duration}
+                                    pixelsPerSecond={pixelsPerSecond}
+                                    globalCurrentTime={currentTime}
+                                    startTimeOffset={start}
+                                    onScrub={onScrub}
+                                    title={item.file.name}
+                                />
+                            );
+                        })
+                    ) : (
+                        <div className="timeline-placeholder">
+                            Add clips to the timeline to begin editing
+                        </div>
+                    )}
+                    {/* End Spacer */}
+                    <div style={{ width: '200px', flexShrink: 0 }}></div>
+                </div>
             </div>
         </div>
     );

@@ -89,35 +89,56 @@ export const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
 
         // Drawing Logic
         const centerY = height / 2;
-        // Draw Peaks
-        ctx.fillStyle = '#4fc3f7';
-        const peaksPerSec = peaks.length / duration;
 
-        // Optimization: Only draw visible range if we knew scroll.
-        // Since we don't passed scroll, draw all (or up to limit).
+        if (peaks.length === 0) {
+            // Render "Pending Analysis" State
+            ctx.fillStyle = '#2a2a2a';
+            ctx.fillRect(0, 0, width, height);
 
-        ctx.beginPath();
-        for (let i = 0; i < peaks.length; i++) {
-            const time = i / peaksPerSec;
-            const x = time * pixelsPerSecond;
-            if (x > width) break; // If width is viewport width? 
-            // Wait, if we use CSS scrolling, `width` passed here should be the TOTAL width.
+            ctx.font = '14px Inter, sans-serif'; // Increased font size slightly
+            ctx.fillStyle = '#888';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
 
-            const val = peaks[i];
-            const barHeight = val * (height * 0.8);
+            // Draw a dashed center line
+            ctx.strokeStyle = '#444';
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(0, centerY);
+            ctx.lineTo(width, centerY);
+            ctx.stroke();
+            ctx.setLineDash([]);
 
-            // Draw centered bar
-            ctx.fillRect(x, centerY - barHeight / 2, 2, barHeight); // 2px bar width hardcoded?
-            // Better: calculated width based on pixelsPerSecond and peaksPerSec.
+            // Draw text centered only once to avoid overlap issues
+            // If the clip is huge (e.g. > 2000px), we could repeat, but let's keep it simple and clean first.
+            ctx.fillText("Analysis Pending - Click 'Analyze Project'", width / 2, centerY - 15);
+
+        } else {
+            // Draw Peaks
+            ctx.fillStyle = '#4fc3f7';
+            const peaksPerSec = peaks.length / duration;
+
+            ctx.beginPath();
+            for (let i = 0; i < peaks.length; i++) {
+                const time = i / peaksPerSec;
+                const x = time * pixelsPerSecond;
+                if (x > width) break;
+
+                const val = peaks[i];
+                const barHeight = Math.max(2, val * (height * 0.8)); // Ensure at least 2px height
+
+                // Draw centered bar
+                ctx.fillRect(x, centerY - barHeight / 2, 2, barHeight);
+            }
+
+            // Draw Silences
+            ctx.fillStyle = 'rgba(239, 83, 80, 0.4)';
+            silences.forEach(s => {
+                const x = s.start * pixelsPerSecond;
+                const w = (s.end - s.start) * pixelsPerSecond;
+                ctx.fillRect(x, 0, w, height);
+            });
         }
-
-        // Draw Silences
-        ctx.fillStyle = 'rgba(239, 83, 80, 0.4)';
-        silences.forEach(s => {
-            const x = s.start * pixelsPerSecond;
-            const w = (s.end - s.start) * pixelsPerSecond;
-            ctx.fillRect(x, 0, w, height);
-        });
 
         // Draw Playhead
         const playheadX = currentTime * pixelsPerSecond;
