@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import './App.css'; // Global CSS is enough for App often, or we can remove if using Layout CSS
+import './App.css';
+import './components/Sidebar/SidebarTabs.css';
 import { MainLayout } from './components/Layout/MainLayout';
 import { DropZone } from './components/Upload/DropZone';
 import { VideoPreview } from './components/Preview/VideoPreview';
@@ -13,7 +14,6 @@ import { Timeline } from './components/Timeline/Timeline';
 import type { TimelineItem } from './components/Timeline/Timeline';
 
 import { SilenceControls } from './components/Sidebar/SilenceControls';
-import { Plus } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { ExportDialog } from './components/Export/ExportDialog';
 import { ExportProgressModal } from './components/Export/ExportProgressModal';
@@ -40,6 +40,8 @@ function App() {
     minDuration: 0.5,
     safetyMargin: 0.1
   });
+
+  const [activeSidebarTab, setActiveSidebarTab] = useState<'clips' | 'settings'>('clips');
 
   useEffect(() => {
     // Revoke old URL - this effect is no longer needed as videoUrl is removed
@@ -147,24 +149,42 @@ function App() {
     });
   };
 
+  /* AUTOMATED IMPORT LOGIC */
   const handleFilesDropped = async (files: File[]) => {
-    const newClipPromises = files.map(async file => {
+    // 1. Calculate durations
+    const newClipData = await Promise.all(files.map(async file => {
       const duration = await getVideoDuration(file);
       return {
         id: uuidv4(),
         file,
         duration
       };
-    });
+    }));
 
-    const newClips = await Promise.all(newClipPromises);
+    // 2. Add to Clip Pool (Sidebar)
+    setClips(prev => [...prev, ...newClipData]);
 
-    setClips(prev => [...prev, ...newClips]);
-    // Auto select first of new clips if none selected and switch to source view
-    if (!selectedClipId && newClips.length > 0) {
-      setSelectedClipId(newClips[0].id);
-      setViewMode('SOURCE');
+    // 3. Automatically Create Timeline Items
+    const newTimelineItems: TimelineItem[] = newClipData.map(clip => ({
+      id: uuidv4(),
+      clipId: clip.id,
+      file: clip.file,
+      peaks: [],
+      silences: [],
+      duration: clip.duration || 0
+    }));
+
+    // 4. Update Timeline State
+    setTimelineItems(prev => [...prev, ...newTimelineItems]);
+
+    // 5. Auto-select first new clip and Switch to Project View
+    if (!selectedClipId && newClipData.length > 0) {
+      setSelectedClipId(newClipData[0].id);
     }
+    setViewMode('PROJECT');
+
+    // 6. Trigger Analysis immediately
+    performAnalysis(newTimelineItems);
   };
 
   const handleRemoveClip = (id: string) => {
@@ -181,21 +201,7 @@ function App() {
     setSourceTime(0);
   };
 
-  const handleAddToTimeline = () => {
-    const newItems: TimelineItem[] = clips.map(clip => ({
-      id: uuidv4(),
-      clipId: clip.id,
-      file: clip.file,
-      peaks: [],
-      silences: [],
-      duration: clip.duration || 0
-    }));
-    setTimelineItems(prev => [...prev, ...newItems]);
-    setViewMode('PROJECT'); // Switch to project view to see functionality
-
-    // Auto-start analysis for new items
-    performAnalysis(newItems);
-  };
+  /* REMOVED: handleAddToTimeline - logic moved to handleFilesDropped */
 
   const performAnalysis = async (itemsToAnalyze: TimelineItem[], force: boolean = false) => {
     console.log("Starting analysis for items:", itemsToAnalyze.length, "Force:", force);
@@ -370,33 +376,53 @@ function App() {
     setViewMode('PROJECT');
   };
 
+  /* Sidebar Content Construction */
+  // ... inside App component (variable declared at top)
+
   const sidebarContent = (
     <>
-      <div style={{ marginBottom: '16px' }}>
-        <DropZone onFilesDropped={handleFilesDropped} />
-      </div>
-
-      <div style={{ marginBottom: '10px' }}>
-        <SilenceControls
-          options={silenceOptions}
-          onChange={setSilenceOptions}
-          onApply={() => performAnalysis(timelineItems, true)}
-          isAnalyzing={isAnalyzing}
-        />
-      </div>
-      <div style={{ marginBottom: '10px', display: 'flex', gap: '8px' }}>
-        <button className="btn-secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={handleAddToTimeline}>
-          <Plus size={16} style={{ marginRight: 6 }} />
-          Add All to Timeline
+      {/* Sidebar Tabs */}
+      <div className="sidebar-tabs">
+        <button
+          className={`sidebar-tab ${activeSidebarTab === 'clips' ? 'active' : ''}`}
+          onClick={() => setActiveSidebarTab('clips')}
+        >
+          Clips
+        </button>
+        <button
+          className={`sidebar-tab ${activeSidebarTab === 'settings' ? 'active' : ''}`}
+          onClick={() => setActiveSidebarTab('settings')}
+        >
+          Settings
         </button>
       </div>
-      <ClipList
-        clips={clips}
-        onRemoveClip={handleRemoveClip}
-        onSelectClip={handleSelectClip}
-        onAnalyzeClip={handleAnalyzeClipFromSidebar}
-        selectedClipId={selectedClipId}
-      />
+
+      {activeSidebarTab === 'clips' && (
+        <>
+          <div style={{ marginBottom: '16px' }}>
+            <DropZone onFilesDropped={handleFilesDropped} />
+          </div>
+          {/* Removed Add All to Timeline Button */}
+          <ClipList
+            clips={clips}
+            onRemoveClip={handleRemoveClip}
+            onSelectClip={handleSelectClip}
+            onAnalyzeClip={handleAnalyzeClipFromSidebar}
+            selectedClipId={selectedClipId}
+          />
+        </>
+      )}
+
+      {activeSidebarTab === 'settings' && (
+        <div style={{ marginBottom: '10px' }}>
+          <SilenceControls
+            options={silenceOptions}
+            onChange={setSilenceOptions}
+            onApply={() => performAnalysis(timelineItems, true)}
+            isAnalyzing={isAnalyzing}
+          />
+        </div>
+      )}
     </>
   );
 
